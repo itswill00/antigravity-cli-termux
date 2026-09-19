@@ -956,10 +956,15 @@ header{
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         <span class="btn-text">Sessions</span>
       </button>
+      <button id="exportBtn" class="hdr-btn" type="button" title="Export session as Markdown" aria-label="Export">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span class="btn-text">Export</span>
+      </button>
       <button id="clearBtn" class="hdr-btn" type="button" title="New Chat (Ctrl+N)" aria-label="New Chat">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
         <span class="btn-text">New</span>
       </button>
+      <button id="helpBtn" class="hdr-btn" type="button" title="Help (?)" aria-label="Help">?</button>
     </div>
   </div>
 </header>
@@ -1062,6 +1067,32 @@ header{
   </div>
 </div>
 
+<div id="helpOverlay" class="modal-overlay" aria-hidden="true">
+  <div class="modal-card modal-card-sm">
+    <div class="modal-head">
+      <div class="modal-head-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;color:var(--accent)"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <h2>Help & Shortcuts</h2>
+      </div>
+      <div class="modal-actions">
+        <button id="closeHelpBtn" class="modal-close-btn" type="button" title="Close (Esc)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+    </div>
+    <div class="modal-body" style="padding:14px 14px;display:flex;flex-direction:column;gap:8px;font-size:12.5px">
+      <div style="display:flex;justify-content:space-between"><span><kbd>Enter</kbd> send</span><span style="color:var(--text-muted)">send</span></div>
+      <div style="display:flex;justify-content:space-between"><span><kbd>Shift+Enter</kbd> newline</span><span style="color:var(--text-muted)">newline</span></div>
+      <div style="display:flex;justify-content:space-between"><span><kbd>/</kbd> commands</span><span style="color:var(--text-muted)">slash picker</span></div>
+      <div style="display:flex;justify-content:space-between"><span><kbd>Ctrl+K</kbd> models</span><span style="color:var(--text-muted)">model picker</span></div>
+      <div style="display:flex;justify-content:space-between"><span><kbd>Ctrl+L</kbd> sessions</span><span style="color:var(--text-muted)">sessions</span></div>
+      <div style="display:flex;justify-content:space-between"><span><kbd>Ctrl+N</kbd> new chat</span><span style="color:var(--text-muted)">new session</span></div>
+      <div style="display:flex;justify-content:space-between"><span><kbd>↑</kbd> edit last</span><span style="color:var(--text-muted)">recall prompt</span></div>
+      <div style="display:flex;justify-content:space-between"><span>Drag drop / Paste</span><span style="color:var(--text-muted)">attach image</span></div>
+      <hr style="border:0;border-top:1px solid var(--border);margin:4px 0">
+      <div style="color:var(--text-muted);font-size:11.5px">Slash: <code>/model &lt;name&gt;</code>, <code>/clear</code>, <code>/new</code>. Model switch applies next prompt; effort via <code>/model name [low|medium|high]</code>.</div>
+    </div>
+  </div>
+</div>
+
 <div id="confirmOverlay" class="modal-overlay" aria-hidden="true">
   <div class="modal-card modal-card-sm">
     <div class="modal-head">
@@ -1092,10 +1123,11 @@ const counterEl=document.getElementById('counter'), dropOverlay=document.getElem
 const quotaBadge=document.getElementById('quotaBadge'), quotaText=document.getElementById('quotaText');
 const slashMenu=document.getElementById('slashMenu'), verBadge=document.getElementById('verBadge'), sendBtn=document.getElementById('send'), sendLabel=document.getElementById('sendLabel');
 const hdrModelBtn=document.getElementById('hdrModelBtn'), hdrModelLabel=document.getElementById('hdrModelLabel');
-const hdrSessionsBtn=document.getElementById('hdrSessionsBtn'), clearBtn=document.getElementById('clearBtn');
+const hdrSessionsBtn=document.getElementById('hdrSessionsBtn'), clearBtn=document.getElementById('clearBtn'), exportBtn=document.getElementById('exportBtn'), helpBtn=document.getElementById('helpBtn');
 const sessionOverlay=document.getElementById('sessionOverlay'), sessionList=document.getElementById('sessionList'), sessionSearch=document.getElementById('sessionSearch');
 const modelOverlay=document.getElementById('modelOverlay'), modelList=document.getElementById('modelList'), modelSearch=document.getElementById('modelSearch');
 const confirmOverlay=document.getElementById('confirmOverlay'), confirmTitle=document.getElementById('confirmTitle'), confirmMsg=document.getElementById('confirmMsg'), okConfirmBtn=document.getElementById('okConfirmBtn'), cancelConfirmBtn=document.getElementById('cancelConfirmBtn'), closeConfirmBtn=document.getElementById('closeConfirmBtn');
+const helpOverlay=document.getElementById('helpOverlay');
 
 let currentModel='gemini-3.8-flash-medium';
 
@@ -1204,7 +1236,15 @@ if(window.visualViewport){
   window.visualViewport.addEventListener('scroll', syncLayout);
 }
 
+let renderQueued=false;
+function scheduleRender(){
+  if(renderQueued) return;
+  renderQueued=true;
+  requestAnimationFrame(()=>{ renderQueued=false; render(); });
+}
 function render(){
+  // ponytail: batch via DocumentFragment to avoid N reflows on long history
+  const frag=document.createDocumentFragment();
   chatEl.innerHTML='';
   if(history.length===0){
     const lastSessionId=localStorage.getItem('agy_web_last_cid');
@@ -1304,7 +1344,7 @@ function render(){
     const txt=document.createElement('div');
     if(m.thinking){
       txt.className='thinking-box';
-      txt.innerHTML='<div class="thinking-header"><span class="pulse-dot"></span> Thinking…</div>';
+      txt.innerHTML='<div class="thinking-header">Thinking<div class="thinking-dots"><span></span><span></span><span></span></div></div>';
     } else if(m.role==='assistant'){
       txt.innerHTML=md(m.text);
     } else {
@@ -1338,6 +1378,18 @@ function render(){
         acts.appendChild(rt);
       }
 
+      // edit last user msg quickly
+      if(m.role==='user' || (m.role==='assistant' && i===history.length-1)){
+        const ed=document.createElement('button');
+        ed.className='action-btn';
+        ed.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg><span>Edit</span>';
+        ed.onclick=()=>{
+          const u = m.role==='user' ? m : history[i-1];
+          if(u && u.role==='user'){ promptEl.value=u.text; autoSize(); promptEl.focus(); promptEl.setSelectionRange(promptEl.value.length, promptEl.value.length); }
+        };
+        acts.appendChild(ed);
+      }
+
       if(m.duration || m.model){
         const meta=document.createElement('div');
         meta.className='msg-meta';
@@ -1357,9 +1409,9 @@ function render(){
     }
 
     row.appendChild(bub);
-    chatEl.appendChild(row);
+    frag.appendChild(row);
   });
-
+  chatEl.appendChild(frag);
   window.scrollTo(0, document.body.scrollHeight);
   syncLayout();
 }
@@ -1609,7 +1661,6 @@ async function loadQuota(){
 loadQuota();
 quotaBadge.onclick=loadQuota;
 setInterval(loadQuota, 45000);
-document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) loadQuota(); });
 
 async function loadSlash(){
   try{
@@ -2079,15 +2130,14 @@ async function send(){
       if(!textEl) return;
       const items=toolLog.slice(-4).map(to=>`
         <div class="tool-pill">
-          <span class="tool-dot ${to.state==='DONE'?'done':'running'}"></span>
           <code>${esc(to.name)}</code>
           ${to.summary ? `<span class="tool-summary">${esc(to.summary.slice(0,60))}</span>` : ''}
+          <span style="font-size:9px;color:var(--text-muted)">${to.state==='DONE'?'✓':'…'}</span>
         </div>
       `).join('');
-
       textEl.className='thinking-box';
       textEl.innerHTML=`
-        <div class="thinking-header"><span class="pulse-dot"></span> Executing…</div>
+        <div class="thinking-header">Executing<div class="thinking-dots"><span></span><span></span><span></span></div></div>
         ${toolLog.length ? `<div class="tools-stream">${items}</div>` : ''}
       `;
     }
@@ -2181,6 +2231,33 @@ promptEl.addEventListener('keydown', e=>{
   }
 });
 
+function showHelp(){ helpOverlay.classList.add('on'); helpOverlay.setAttribute('aria-hidden','false'); }
+function hideHelp(){ helpOverlay.classList.remove('on'); helpOverlay.setAttribute('aria-hidden','true'); }
+helpBtn.addEventListener('click', showHelp);
+document.getElementById('closeHelpBtn').addEventListener('click', hideHelp);
+helpOverlay.addEventListener('click', e=>{ if(e.target===helpOverlay) hideHelp(); });
+exportBtn.addEventListener('click', ()=>{
+  if(!currentConversation && !history.length){ alert('No session to export'); return; }
+  if(!currentConversation){ // export local history
+    const txt = history.map(m=>`## ${m.role}\n${m.text}`).join('\n\n');
+    const blob=new Blob([`# Antigravity local chat\n\n${txt}`],{type:'text/markdown'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='agy-local.md'; a.click(); URL.revokeObjectURL(a.href); return;
+  }
+  window.location.href=`/api/export?id=${encodeURIComponent(currentConversation)}`;
+});
+let lastOffline=false;
+function checkOffline(){
+  const off=!navigator.onLine;
+  if(off!==lastOffline){
+    lastOffline=off;
+    if(off){ quotaText.textContent='offline'; quotaBadge.classList.add('exhausted'); quotaBadge.title='Offline — check network'; }
+    else loadQuota();
+  }
+}
+window.addEventListener('online', checkOffline);
+window.addEventListener('offline', checkOffline);
+checkOffline();
+
 document.addEventListener('keydown', e=>{
   if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='k'){
     e.preventDefault();
@@ -2197,7 +2274,11 @@ document.addEventListener('keydown', e=>{
     clearBtn.click();
     return;
   }
+  if(e.key==='?' && !e.ctrlKey && !e.metaKey && document.activeElement!==promptEl){
+    e.preventDefault(); showHelp(); return;
+  }
   if(e.key==='Escape'){
+    if(helpOverlay.classList.contains('on')){ hideHelp(); return; }
     if(confirmOverlay.classList.contains('on')) hideConfirm();
     if(modelOverlay.classList.contains('on')) hideModels();
     if(sessionOverlay.classList.contains('on')) hideSessions();
@@ -2238,6 +2319,12 @@ chatEl.addEventListener('click', e=>{
   render();
   autoSize();
   syncLayout();
+  // ponytail: debounce quota/slider redraws on rapid visibility toggles
+  let visTimer=null;
+  document.addEventListener('visibilitychange', ()=>{
+    if(visTimer) clearTimeout(visTimer);
+    visTimer=setTimeout(()=>{ if(!document.hidden) loadQuota(); }, 800);
+  });
 })();
 </script>
 </body>
