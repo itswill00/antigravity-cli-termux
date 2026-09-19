@@ -4,6 +4,14 @@
 
 The terminal-first surface to interact with Antigravity agents. Stay in your flow without context switching.
 
+## 1.3.0
+
+- Added `agy web` quota detail modal — clicking the composer quota pill now opens a full breakdown like `agy -p "/usage"`: per-group (Gemini / Claude-GPT) cards with 5-hour + weekly buckets, used/remaining %, bar tiers (success/warning/danger), reset time, refresh button, Esc/backdrop dismiss.
+- Added `agy web` `!` bash mode like the CLI — typing `!<cmd>` in web executes via `POST /api/bash` (shell, 15s timeout, 12k cap) and returns a code block with exit code, mirrored in history.
+- Fixed `agy web` model picker AI slop — flat row list with hairline separators and left `2px` accent on active (Zed/Linear style), no heavy card border/radius, muted mono ids, inline family tag, check stays accent on active only; header icon and placeholder trimmed.
+- Polished `agy web` layout micro-details — header header rebutan fixed (ver-pill hidden ≤640, brand hide @520, model 130→100, quota 180→140, gaps unified), composer radius, chips/sc-tags, blockquote/table, modal tokens, global `transition:all` killed, `prefers-reduced-motion` guard.
+- Chore: bump bootstrapper to `1.3.0`.
+
 ## 1.2.9
 
 - Fixed `agy web` clean install (`lib/agy_web.py:1` self-healing shim + `install.sh:337` heal): release tar `v1.2.8` shipped old shim (`from web.server import main` without `PYTHONPATH`) and missing `bin/lib/web` fallback, causing `ModuleNotFoundError: No module named 'web'` on fresh installs.
