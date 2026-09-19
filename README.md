@@ -1,14 +1,16 @@
-# Antigravity CLI
-> [!NOTE]
-> **Community Acknowledgement:** Much of the core binary patching and VA39 memory layout engineering implemented in this Termux fork is built upon the foundational work and discoveries of [@hjotha](https://github.com/hjotha) and [@Brajesh2022](https://github.com/Brajesh2022). Deep appreciation to the community for unlocking compatibility!
+# Antigravity CLI Termux Standalone
 
-## 🚀 Quick Start (Termux)
+> Fork by [@itswill00](https://github.com/itswill00) — **adds `agy web` (browser chat on `127.0.0.1:8765`, auto opens Chrome) and `agy-img`**. Pure TUI upstream: [`wallentx/antigravity-cli-termux`](https://github.com/wallentx/antigravity-cli-termux) · Google upstream: [`antigravity.google/cli/install.sh`](https://antigravity.google/cli/install.sh)
+
+## 🚀 Quick Start
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/itswill00/antigravity-cli-termux/dev/install.sh | bash
+agy web   # opens http://127.0.0.1:8765 in Chrome (100% local)
 ```
 
-> Fork by [@itswill00](https://github.com/itswill00) — adds `agy web` (browser chat, like `opencode web`) and `agy-img` (vision). Upstream: [`wallentx/antigravity-cli-termux`](https://github.com/wallentx/antigravity-cli-termux)
+> [!NOTE]
+> **Community Acknowledgement:** Much of the core binary patching and VA39 memory layout engineering implemented in this Termux fork is built upon the foundational work and discoveries of [@hjotha](https://github.com/hjotha) and [@Brajesh2022](https://github.com/Brajesh2022). Deep appreciation to the community for unlocking compatibility!
 
 ![Antigravity CLI Demo](antigravity.gif)
 
@@ -101,20 +103,19 @@ Antigravity CLI brings the core capabilities of Antigravity 2.0 (multi-step reas
 
 ## Installation
 
-### Android (Termux) — this fork
+### Android (Termux) — this fork (with `agy web`)
 ```bash
 curl -fsSL https://raw.githubusercontent.com/itswill00/antigravity-cli-termux/dev/install.sh | bash
-# overrides: AGY_REPO=wallentx/antigravity-cli-termux bash install.sh  # use upstream releases
+agy web                  # http://127.0.0.1:8765 — 100% local, auto opens Chrome
+agy web --host 0.0.0.0  # LAN if you need it
 ```
 
-#### `agy web` — browser chat (like `opencode web`)
-```bash
-agy web                  # http://127.0.0.1:8765
-agy web --port 8765 --open
-agy web --host 0.0.0.0  # LAN (pair with Cloudflare Tunnel / auth)
-# attach photos: click 📎 Foto, paste (Ctrl+V), or drag-drop — forwarded as @/tmp/... to agy
+#### `agy web` — browser chat on your phone
+`100% local` server on `127.0.0.1:8765`, no cloud proxy. `agy web` runs `termux-open-url` so Chrome opens automatically. Streaming via `agy --output-format stream-json`, markdown, slash commands, quota like `agy -p "/usage"`, `!` shell, sessions via `conversation_summaries.db`, image paste/drag-drop (`@/tmp/...`).
+
 ```
-> Modular package `lib/web/{api,ui,server}.py` with shim `lib/agy_web.py` (streaming via `stream-json`, live tool preview, markdown, slash, quota `used|avail`, sessions via `conversation_summaries.db`, auto-open Chrome) — `build.sh` and `install.sh` handle `lib/web` archive.
+agy web --port 8765 --open --allow-lan
+```
 
 #### `agy-img` — single-shot vision
 ```bash
