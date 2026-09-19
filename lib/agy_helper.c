@@ -552,18 +552,20 @@ static int handle_web_command(const char *dir, int argc, char **argv) {
         }
     }
 
-    // legacy shim fallback
-    const char *shim_cands[] = {NULL, NULL, NULL, NULL, NULL};
-    char s0[PATH_MAX], s1[PATH_MAX], s2[PATH_MAX];
+    // legacy shim fallback — use self-healing shim (it finds PREFIX/share/agy via PYTHONPATH fallback)
+    const char *shim_cands[] = {NULL, NULL, NULL, NULL, NULL, NULL};
+    char s0[PATH_MAX], s1[PATH_MAX], s2[PATH_MAX], s3[PATH_MAX];
     snprintf(s0, sizeof(s0), "%s/lib/agy_web.py", dir);
     snprintf(s1, sizeof(s1), "%s/agy_web.py", dir);
     shim_cands[0] = s0;
     shim_cands[1] = s1;
     if (pfx) {
         snprintf(cand, sizeof(cand), "%s/share/agy/agy_web.py", pfx);
-        // reuse static buffer via copy
         snprintf(s2, sizeof(s2), "%s", cand);
         shim_cands[2] = s2;
+        snprintf(cand, sizeof(cand), "%s/bin/agy_web.py", pfx);
+        snprintf(s3, sizeof(s3), "%s", cand);
+        shim_cands[3] = s3;
     }
     for (int i = 0; shim_cands[i]; i++) {
         if (access(shim_cands[i], R_OK) == 0) {
