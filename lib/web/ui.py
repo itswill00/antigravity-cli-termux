@@ -982,7 +982,7 @@ header{
           </button>
           <input id="file" type="file" accept="image/*,.jpg,.jpeg,.png,.webp" style="display:none">
 
-          <button id="quotaBadge" class="quota-pill" type="button" title="Quota: click to refresh" role="status">
+          <button id="quotaBadge" class="quota-pill" type="button" title="Quota: click for details" role="status">
             <span class="quota-dot"></span>
             <span id="quotaText">quota —</span>
           </button>
@@ -1112,6 +1112,28 @@ header{
   </div>
 </div>
 
+<div id="quotaOverlay" class="modal-overlay" aria-hidden="true">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div class="modal-head-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;color:var(--accent)"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        <h2>Quota Usage</h2>
+        <span class="session-total-pill" style="font-size:10.5px">/usage</span>
+      </div>
+      <div class="modal-actions">
+        <button id="closeQuotaBtn" class="modal-close-btn" type="button" title="Close (Esc)" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+    <div id="quotaDetail" class="modal-body" style="gap:10px;padding:12px 14px"></div>
+    <div class="modal-foot" style="justify-content:space-between">
+      <span id="quotaDetailFoot" style="font-size:11px;color:var(--text-muted);font-family:ui-monospace,monospace"></span>
+      <button id="quotaRefreshBtn" class="modal-btn-subtle" type="button" style="font-size:11.5px;padding:6px 12px">Refresh</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const chatEl=document.getElementById('chat'), promptEl=document.getElementById('prompt');
 const fileEl=document.getElementById('file'), attachBtn=document.getElementById('attachBtn'), previewEl=document.getElementById('preview');
@@ -1124,6 +1146,7 @@ const sessionOverlay=document.getElementById('sessionOverlay'), sessionList=docu
 const modelOverlay=document.getElementById('modelOverlay'), modelList=document.getElementById('modelList'), modelSearch=document.getElementById('modelSearch');
 const confirmOverlay=document.getElementById('confirmOverlay'), confirmTitle=document.getElementById('confirmTitle'), confirmMsg=document.getElementById('confirmMsg'), okConfirmBtn=document.getElementById('okConfirmBtn'), cancelConfirmBtn=document.getElementById('cancelConfirmBtn'), closeConfirmBtn=document.getElementById('closeConfirmBtn');
 const helpOverlay=document.getElementById('helpOverlay');
+const quotaOverlay=document.getElementById('quotaOverlay'), quotaDetail=document.getElementById('quotaDetail'), quotaDetailFoot=document.getElementById('quotaDetailFoot'), closeQuotaBtn=document.getElementById('closeQuotaBtn'), quotaRefreshBtn=document.getElementById('quotaRefreshBtn');
 
 let currentModel='gemini-3.8-flash-medium';
 
@@ -1639,7 +1662,71 @@ function renderQuota(groups){
       tipParts.push(`${sname} ${b.window||'window'}: ${b.avail_pct}% left`);
     }
   }
-  quotaBadge.title=tipParts.join(' • ') + ' • Click to refresh';
+  quotaBadge.title=tipParts.join(' • ') + ' • Click for details';
+  renderQuotaDetail(groups);
+}
+function quotaBarColor(pct){
+  if(pct < 15) return 'var(--danger)';
+  if(pct < 40) return 'var(--warning)';
+  return 'var(--success)';
+}
+function resetLabel(s){
+  if(!s) return '—';
+  try{
+    const d=new Date(s);
+    if(isNaN(d.getTime())) return s;
+    return d.toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+  }catch(e){ return s; }
+}
+function renderQuotaDetail(groups){
+  if(!quotaDetail) return;
+  if(!groups || !groups.length){
+    quotaDetail.innerHTML='<div style="color:var(--text-muted);font-size:12px;padding:8px 0">No quota data yet. Click Refresh.</div>';
+    if(quotaDetailFoot) quotaDetailFoot.textContent='';
+    return;
+  }
+  const frag=[];
+  for(const g of groups){
+    const gname=g.key==='gemini' ? 'Gemini Models' : g.key==='3p' ? 'Claude / GPT' : g.name;
+    const buckets=g.buckets||[];
+    let rows='';
+    for(const b of buckets){
+      const pct=b.avail_pct ?? Math.round((b.remaining||0)*100);
+      const used=100 - pct;
+      const win=(b.window||'window');
+      const winLabel=win==='5h' ? '5-hour' : win==='weekly' ? 'Weekly' : win;
+      const name=b.name || winLabel;
+      const col=quotaBarColor(pct);
+      rows+=`<div style="display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--border)">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:600;color:var(--text);line-height:1.2">${esc(name)} <span style="font-weight:400;color:var(--text-muted);font-size:11px">· ${esc(winLabel)}</span></div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:3px">Resets ${esc(resetLabel(b.reset))} · ${pct}% remaining</div>
+          <div style="height:6px;background:var(--surface);border:1px solid var(--border);border-radius:999px;overflow:hidden;margin-top:6px">
+            <div style="height:100%;width:${used}%;background:${col};transition:width .3s ease"></div>
+          </div>
+        </div>
+        <div style="text-align:right;min-width:42px">
+          <div style="font-size:12px;font-weight:650;color:var(--text);font-family:ui-monospace,monospace">${pct}%</div>
+          <div style="font-size:10.5px;color:var(--text-muted)">used ${used}%</div>
+        </div>
+      </div>`;
+    }
+    frag.push(`<div style="border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface);padding:10px 12px">
+      <div style="font-size:11.5px;font-weight:600;color:var(--text-sub);letter-spacing:-0.1px">${esc(gname)}</div>
+      ${rows}
+    </div>`);
+  }
+  quotaDetail.innerHTML=frag.join('');
+  if(quotaDetailFoot) quotaDetailFoot.textContent='Updated '+new Date().toLocaleTimeString();
+}
+function openQuota(){
+  if(quotaCache) renderQuotaDetail(quotaCache);
+  quotaOverlay.classList.add('on');
+  quotaOverlay.setAttribute('aria-hidden','false');
+}
+function closeQuota(){
+  quotaOverlay.classList.remove('on');
+  quotaOverlay.setAttribute('aria-hidden','true');
 }
 async function loadQuota(){
   quotaBadge.classList.add('refreshing');
@@ -1655,7 +1742,10 @@ async function loadQuota(){
   }
 }
 loadQuota();
-quotaBadge.onclick=loadQuota;
+quotaBadge.onclick=()=>{ loadQuota(); openQuota(); };
+closeQuotaBtn.onclick=closeQuota;
+quotaRefreshBtn.onclick=loadQuota;
+quotaOverlay.addEventListener('click', e=>{ if(e.target===quotaOverlay) closeQuota(); });
 setInterval(loadQuota, 45000);
 
 async function loadSlash(){
@@ -2274,6 +2364,7 @@ document.addEventListener('keydown', e=>{
     e.preventDefault(); showHelp(); return;
   }
   if(e.key==='Escape'){
+    if(quotaOverlay.classList.contains('on')){ closeQuota(); return; }
     if(helpOverlay.classList.contains('on')){ hideHelp(); return; }
     if(confirmOverlay.classList.contains('on')) hideConfirm();
     if(modelOverlay.classList.contains('on')) hideModels();
