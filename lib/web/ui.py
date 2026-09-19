@@ -85,30 +85,28 @@ header{
 .brand b{font-size:13.5px;font-weight:700;letter-spacing:-0.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ver-pill{font-size:9.5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--text-muted);border:1px solid var(--border);padding:1.5px 6px;border-radius:999px;background:rgba(255,255,255,0.03);white-space:nowrap;flex:0 0 auto}
 
-.hdr-center{display:flex;align-items:center;gap:6px;min-width:0;flex:1 1 auto;justify-content:center}
-.pill-group{display:flex;align-items:center;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:2px 4px;max-width:100%;min-width:0}
-.pill-select-wrap{position:relative;display:flex;align-items:center;min-width:0}
+.hdr-center{display:flex;align-items:center;min-width:0;flex:1 1 auto;justify-content:center}
+.pill-group{display:flex;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:2px 4px;max-width:100%;min-width:0}
+.pill-select-wrap{position:relative;display:flex;align-items:center;min-width:0;max-width:100%}
 .pill-select-wrap select{
   appearance:none;
   background:transparent;
   border:0;
   color:var(--text);
-  font-size:11.5px;
-  font-weight:550;
+  font-size:12px;
+  font-weight:600;
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
-  padding:4px 20px 4px 8px;
+  padding:4px 22px 4px 8px;
   border-radius:6px;
   cursor:pointer;
-  max-width:160px;
+  max-width:260px;
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
   min-width:0;
 }
 .pill-select-wrap select:hover{background:var(--surface-hover)}
-.pill-select-wrap select:disabled{opacity:0.4;cursor:not-allowed}
-.pill-select-wrap .chevron{position:absolute;right:6px;pointer-events:none;width:10px;height:10px;color:var(--text-muted)}
-.pill-divider{width:1px;height:14px;background:var(--border);flex:0 0 1px}
+.pill-select-wrap .chevron{position:absolute;right:6px;pointer-events:none;width:11px;height:11px;color:var(--text-muted)}
 
 .hdr-right{display:flex;align-items:center;gap:6px;flex:0 0 auto}
 .hdr-btn{
@@ -828,8 +826,8 @@ header{
   .brand b{font-size:12px;max-width:88px}
   .logo-ans pre{font:3.2px/3.2px ui-monospace,SFMono-Regular,Menlo,monospace}
   .ver-pill{display:none}
-  .pill-group{padding:2px;gap:2px}
-  .pill-select-wrap select{max-width:110px;font-size:11px;padding:4px 16px 4px 6px}
+  .pill-group{padding:2px 4px}
+  .pill-select-wrap select{max-width:185px;font-size:11px;padding:4px 18px 4px 6px}
   .hdr-btn{min-height:32px;min-width:32px;padding:0;justify-content:center}
   .hdr-btn .btn-text{display:none}
   .empty-logo-box{padding:10px 14px}
@@ -867,7 +865,7 @@ header{
 }
 @media(max-width:380px){
   .brand b{display:none}
-  .pill-select-wrap select{max-width:88px}
+  .pill-select-wrap select{max-width:145px}
   .quota-pill{max-width:130px;font-size:9.5px;padding:0 6px}
 }
 </style>
@@ -895,16 +893,6 @@ header{
       <div class="pill-group">
         <div class="pill-select-wrap" title="Active Model (Ctrl+K)">
           <select id="hdrModel" aria-label="Model"></select>
-          <svg class="chevron" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/></svg>
-        </div>
-        <div class="pill-divider"></div>
-        <div class="pill-select-wrap" id="effortWrap" title="Reasoning Effort">
-          <select id="effortHdr" aria-label="Effort">
-            <option value="">auto</option>
-            <option value="low">low</option>
-            <option value="medium">med</option>
-            <option value="high">high</option>
-          </select>
           <svg class="chevron" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/></svg>
         </div>
       </div>
@@ -1001,7 +989,7 @@ const fileEl=document.getElementById('file'), attachBtn=document.getElementById(
 const counterEl=document.getElementById('counter'), dropOverlay=document.getElementById('dropOverlay');
 const quotaBadge=document.getElementById('quotaBadge'), quotaText=document.getElementById('quotaText');
 const slashMenu=document.getElementById('slashMenu'), verBadge=document.getElementById('verBadge'), sendBtn=document.getElementById('send'), sendLabel=document.getElementById('sendLabel');
-const hdrModelEl=document.getElementById('hdrModel'), hdrEffortEl=document.getElementById('effortHdr'), effortWrap=document.getElementById('effortWrap');
+const hdrModelEl=document.getElementById('hdrModel');
 const hdrSessionsBtn=document.getElementById('hdrSessionsBtn'), clearBtn=document.getElementById('clearBtn');
 const sessionOverlay=document.getElementById('sessionOverlay'), sessionList=document.getElementById('sessionList'), sessionSearch=document.getElementById('sessionSearch');
 
@@ -1270,18 +1258,6 @@ function render(){
   syncLayout();
 }
 
-function isEffortModel(id){
-  const l=(id||'').toLowerCase();
-  return l.includes('-high') || l.includes('-low') || l.includes('-medium');
-}
-function syncEffortUI(){
-  const has=isEffortModel(hdrModelEl.value);
-  hdrEffortEl.disabled=has;
-  effortWrap.style.opacity=has ? '0.4' : '1';
-  hdrEffortEl.title=has ? 'This model already includes effort level' : 'Reasoning effort';
-  if(has) hdrEffortEl.value='';
-}
-
 async function loadModels(){
   try{
     const r=await fetch('/api/models');
@@ -1296,18 +1272,11 @@ async function loadModels(){
     });
     const saved=localStorage.getItem('agy_web_model');
     if(saved && [...hdrModelEl.options].some(o=>o.value===saved)) hdrModelEl.value=saved;
-    const savedEff=localStorage.getItem('agy_web_effort');
-    if(savedEff && !isEffortModel(hdrModelEl.value)) hdrEffortEl.value=savedEff;
-    syncEffortUI();
   }catch(e){}
 }
 hdrModelEl.addEventListener('change', ()=>{
-  syncEffortUI();
   localStorage.setItem('agy_web_model', hdrModelEl.value);
   renderQuota(quotaCache||[]);
-});
-hdrEffortEl.addEventListener('change', ()=>{
-  localStorage.setItem('agy_web_effort', hdrEffortEl.value);
 });
 loadModels();
 
@@ -1769,14 +1738,10 @@ async function send(){
       modelCache.push({id:mid, label:mid});
     }
     hdrModelEl.value=mid;
-    syncEffortUI();
     localStorage.setItem('agy_web_model', mid);
     renderQuota(quotaCache||[]);
-    const effPick=hdrEffortEl.disabled ? '' : (parts[2]||hdrEffortEl.value);
-    if(effPick && !hdrEffortEl.disabled){
-      hdrEffortEl.value=effPick;
-      localStorage.setItem('agy_web_effort', effPick);
-    }
+    const effPick=parts[2]||'';
+    if(effPick) localStorage.setItem('agy_web_effort', effPick);
     history.push({role:'user', text});
     history.push({role:'assistant', text:`Model updated to \`${mid}\`${effPick ? ` (${effPick})`:''}`, model:mid});
     render();
@@ -1804,7 +1769,7 @@ async function send(){
   pendingImage=null;
   setPreview();
 
-  const eff=hdrEffortEl.disabled ? '' : hdrEffortEl.value;
+  const eff=localStorage.getItem('agy_web_effort')||'';
   const snapshotModel=hdrModelEl.value + (eff ? ` · ${eff}` : '');
   const th={role:'assistant', text:'', thinking:true, model:snapshotModel};
   history.push(th);
