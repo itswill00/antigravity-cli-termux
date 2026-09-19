@@ -601,6 +601,66 @@ header{
   border-radius:999px;
   background:var(--surface-hover);
 }
+.modal-actions{
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.modal-btn-new{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  background:var(--surface);
+  color:var(--text);
+  border:1px solid var(--border);
+  padding:0 9px;
+  border-radius:var(--radius-sm);
+  font-size:11.5px;
+  font-weight:600;
+  cursor:pointer;
+  transition:all 0.14s ease;
+  height:28px;
+}
+.modal-btn-new:hover{
+  background:var(--surface-hover);
+  border-color:var(--border-light);
+  color:var(--text-bright);
+}
+.modal-btn-new:active{
+  transform:scale(0.96);
+}
+.modal-btn-new svg{
+  width:12px;
+  height:12px;
+  stroke-width:2.2;
+}
+.modal-close-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:28px;
+  height:28px;
+  border-radius:var(--radius-sm);
+  background:transparent;
+  border:1px solid transparent;
+  color:var(--text-muted);
+  cursor:pointer;
+  transition:all 0.14s ease;
+  padding:0;
+}
+.modal-close-btn:hover{
+  background:var(--surface-hover);
+  border-color:var(--border);
+  color:var(--text);
+}
+.modal-close-btn:active{
+  transform:scale(0.94);
+}
+.modal-close-btn svg{
+  width:14px;
+  height:14px;
+  stroke-width:2;
+}
 .modal-search-wrap{padding:8px 14px;border-bottom:1px solid var(--border);background:var(--bg)}
 .modal-search-box{
   display:flex;
@@ -910,13 +970,18 @@ header{
     <div class="sheet-handle"></div>
     <div class="modal-head">
       <div class="modal-head-title">
-        <div class="logo-ans" style="transform:scale(0.8);transform-origin:left center;margin:-4px 0"><pre>         <span style="color:rgb(154,159,53)">▄</span><span style="color:rgb(189,171,65);background:rgb(186,143,36)">▄</span><span style="color:rgb(198,146,68);background:rgb(228,143,46)">▄</span><span style="color:rgb(212,120,70);background:rgb(234,113,53)">▄</span><span style="color:rgb(227,97,68);background:rgb(198,75,48)">▄</span><span style="color:rgb(195,67,54)">▄</span></pre></div>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;color:var(--text-muted)"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         <h2>Sessions</h2>
         <span class="session-total-pill" id="sessionTotalCount">0</span>
       </div>
-      <div style="display:flex;gap:6px">
-        <button id="newSessionBtn" class="hdr-btn" style="background:var(--text);color:var(--bg);border-color:var(--text);font-weight:600">+ New</button>
-        <button id="closeSessionsBtn" class="hdr-btn">Close</button>
+      <div class="modal-actions">
+        <button id="newSessionBtn" class="modal-btn-new" type="button" title="Start new session">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <span>New Chat</span>
+        </button>
+        <button id="closeSessionsBtn" class="modal-close-btn" type="button" title="Close (Esc)" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
     </div>
     <div class="modal-search-wrap">
