@@ -334,6 +334,52 @@ if [[ -f "$EXTRACT_DIR/agy-img" || -f "$EXTRACT_DIR/lib/agy_img.py" ]]; then
   fi
   chmod +x "$INSTALL_BIN_DIR/agy-img" 2>/dev/null || true
 fi
+# self-heal: ensure bin/lib/web exists for dir fallback (helper checks $PREFIX/bin/lib/web)
+if [[ -d "$EXTRACT_DIR/lib/web" ]]; then
+  mkdir -p "$INSTALL_BIN_DIR/lib/web" 2>/dev/null || true
+  cp -f "$EXTRACT_DIR/lib/web/"*.py "$INSTALL_BIN_DIR/lib/web/" 2>/dev/null || true
+fi
+# self-heal old shim from release tar (pre-e9c2044) — inject PYTHONPATH fallback
+for _shim in "$INSTALL_BIN_DIR/agy_web.py" "$INSTALL_BIN_DIR/../share/agy/agy_web.py" "$INSTALL_BIN_DIR/../lib/agy/agy_web.py" "$INSTALL_BIN_DIR/lib/agy_web.py"; do
+  if [[ -f "$_shim" ]] && ! grep -q "_ensure_web" "$_shim" 2>/dev/null; then
+    cat > "$_shim" <<'PYEOF'
+#!/usr/bin/env python3
+import sys, os, pathlib
+def _ensure_web():
+    if "web.server" in sys.modules:
+        return
+    cands=[]
+    try:
+        cands.append(pathlib.Path(__file__).resolve().parent)
+    except Exception:
+        pass
+    pfx=os.environ.get("PREFIX") or "/data/data/com.termux/files/usr"
+    for base in (pathlib.Path(pfx)/"share/agy", pathlib.Path(pfx)/"lib/agy", pathlib.Path(pfx)/"bin/lib", pathlib.Path(__file__).resolve().parent.parent/"lib"):
+        cands.append(base)
+    for base in cands:
+        try:
+            if (base/"web"/"server.py").is_file():
+                s=str(base)
+                if s not in sys.path:
+                    sys.path.insert(0,s)
+                break
+        except Exception:
+            continue
+    try:
+        par=pathlib.Path(__file__).resolve().parent
+        if (par/"web"/"server.py").is_file() and str(par) not in sys.path:
+            sys.path.insert(0,str(par))
+    except Exception:
+        pass
+_ensure_web()
+from web.server import main
+if __name__=="__main__":
+    main()
+PYEOF
+    chmod +x "$_shim" 2>/dev/null || true
+  fi
+done
+
 rm -rf "$EXTRACT_DIR"
 
 # ── Verify twin-binary ────────────────────────────────────────────────────────
