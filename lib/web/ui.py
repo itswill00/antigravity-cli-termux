@@ -791,30 +791,24 @@ header{
   border:0;
   border-bottom:1px solid var(--border);
   border-radius:0;
-  padding:10px 12px;
+  padding:9px 10px 9px 12px;
   cursor:pointer;
   display:flex;
   align-items:center;
-  justify-content:space-between;
   gap:10px;
   text-align:left;
-  transition:background 0.12s ease;
+  transition:background 0.1s ease;
   width:100%;
 }
 .model-item:first-child{border-top:1px solid var(--border)}
-.model-item:hover{
-  background:var(--surface-hover);
-}
-.model-item.active{
-  background:var(--surface-active);
-}
-.model-item.nav-focused{
-  background:var(--surface-hover);
-}
+.model-item:hover{ background:var(--surface-hover) }
+.model-item.active{ background:var(--surface-card); border-left:2px solid var(--accent); padding-left:10px }
+.model-item.nav-focused{ background:var(--surface-hover) }
+.model-item.active.nav-focused{ background:var(--surface-active) }
 .model-item-main{flex:1;min-width:0}
 .model-item-label{
   font-size:12.5px;
-  font-weight:600;
+  font-weight:550;
   color:var(--text);
   white-space:nowrap;
   overflow:hidden;
@@ -822,23 +816,17 @@ header{
   line-height:1.3;
 }
 .model-item-tag{
-  display:inline-flex;
-  align-items:center;
+  display:inline;
   font-size:10px;
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
   color:var(--text-muted);
-  border:1px solid var(--border);
-  border-radius:var(--radius-sm);
-  padding:0 5px;
-  height:16px;
   margin-left:6px;
-  vertical-align:middle;
 }
 .model-item-id{
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
-  font-size:10.5px;
+  font-size:10px;
   color:var(--text-muted);
-  margin-top:2px;
+  margin-top:1px;
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
@@ -850,9 +838,7 @@ header{
   flex:0 0 14px;
   opacity:0;
 }
-.model-item.active .model-check{
-  opacity:1;
-}
+.model-item.active .model-check{ opacity:1 }
 
 .drop-overlay{
   position:fixed;
@@ -1054,7 +1040,6 @@ header{
     <div class="sheet-handle"></div>
     <div class="modal-head">
       <div class="modal-head-title">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;color:var(--accent)"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
         <h2>Select Model</h2>
         <span class="session-total-pill" id="modelTotalCount">0</span>
       </div>
@@ -1067,7 +1052,7 @@ header{
     <div class="modal-search-wrap">
       <div class="modal-search-box">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" id="modelSearch" class="modal-search-input" placeholder="Search models by name or id…" aria-label="Search models">
+        <input type="text" id="modelSearch" class="modal-search-input" placeholder="Filter models…" aria-label="Search models">
         <span class="session-count-badge" id="modelCount">0</span>
       </div>
     </div>
@@ -1477,10 +1462,11 @@ function renderModelList(models){
     card.type='button';
     card.dataset.id=m.id;
 
-    const fam=(m.id||'').toLowerCase().startsWith('gemini') ? 'Gemini' : (m.id.toLowerCase().startsWith('claude')||m.id.toLowerCase().startsWith('gpt') ? 'Claude/GPT' : '');
+    const fam=(m.id||'').toLowerCase().startsWith('gemini') ? 'gemini' : (m.id.toLowerCase().startsWith('claude')||m.id.toLowerCase().startsWith('gpt') ? '3p' : '');
+    const famLabel=fam==='gemini'?'gemini':fam==='3p'?'3p':'';
     card.innerHTML=`
       <div class="model-item-main">
-        <div class="model-item-label">${esc(m.label || m.id)}${fam ? `<span class="model-item-tag">${fam}</span>` : ''}</div>
+        <div class="model-item-label">${esc(m.label || m.id)}${famLabel ? `<span class="model-item-tag">${famLabel}</span>` : ''}</div>
         <div class="model-item-id">${esc(m.id)}</div>
       </div>
       <svg class="model-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
