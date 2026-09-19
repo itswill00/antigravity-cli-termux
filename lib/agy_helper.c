@@ -447,13 +447,20 @@ static int perform_transactional_update(const char *dir, const char *latest_tag)
         "curl -fsSL -o \"$tmp/antigravity-termux-standalone.tar.gz\" "
         "\"https://github.com/$repo/releases/download/"
         "$release_tag/antigravity-termux-standalone.tar.gz\" && "
-        "tar -xzf \"$tmp/antigravity-termux-standalone.tar.gz\" -C \"$tmp\" "
-        "agy agy.va39 && "
+        "tar -xzf \"$tmp/antigravity-termux-standalone.tar.gz\" -C \"$tmp\" && "
         "test -s \"$tmp/agy\" && test -x \"$tmp/agy\" && "
         "test -s \"$tmp/agy.va39\" && test -x \"$tmp/agy.va39\" && "
         "\"$tmp/agy\" --help >/dev/null 2>&1 && "
         "install -m 0755 \"$tmp/agy\" \"$new_agy\" && "
         "install -m 0755 \"$tmp/agy.va39\" \"$new_payload\" && "
+        " ( if [ -d \"$tmp/lib/web\" ]; then mkdir -p \"$install_dir/../share/agy/web\" \"$install_dir/../lib/agy/web\" \"$install_dir/lib/web\" 2>/dev/null || true; "
+        "install -m 0755 \"$tmp/lib/web/\"*.py \"$install_dir/../share/agy/web/\" 2>/dev/null || true; "
+        "install -m 0755 \"$tmp/lib/web/\"*.py \"$install_dir/../lib/agy/web/\" 2>/dev/null || cp -f \"$tmp/lib/web/\"*.py \"$install_dir/../lib/agy/web/\" 2>/dev/null || true; "
+        "cp -f \"$tmp/lib/web/\"*.py \"$install_dir/lib/web/\" 2>/dev/null || true; fi; "
+        "if [ -f \"$tmp/lib/agy_web.py\" ]; then install -m 0755 \"$tmp/lib/agy_web.py\" \"$install_dir/../share/agy/agy_web.py\" 2>/dev/null || true; "
+        "install -m 0755 \"$tmp/lib/agy_web.py\" \"$install_dir/lib/agy_web.py\" 2>/dev/null || true; "
+        "install -m 0755 \"$tmp/lib/agy_web.py\" \"$install_dir/agy_web.py\" 2>/dev/null || true; fi; "
+        "if [ -f \"$tmp/lib/agy_img.py\" ]; then install -m 0755 \"$tmp/lib/agy_img.py\" \"$install_dir/agy-img\" 2>/dev/null || cp -f \"$tmp/lib/agy_img.py\" \"$install_dir/agy-img\" 2>/dev/null || true; chmod +x \"$install_dir/agy-img\" 2>/dev/null || true; fi; : ) 2>/dev/null || true && "
         "cp -p \"$install_dir/agy\" \"$old_agy_part\" && "
         "mv -f \"$old_agy_part\" \"$old_agy\" && "
         "cp -p \"$install_dir/agy.va39\" \"$old_payload_part\" && "
@@ -497,116 +504,86 @@ static int handle_web_command(const char *dir, int argc, char **argv) {
             return 0;
         }
     }
-    char web_py[PATH_MAX];
-    char alt_py[PATH_MAX];
-    char web_pkg[PATH_MAX];
-    int w = snprintf(web_py, sizeof(web_py), "%s/lib/agy_web.py", dir);
-    if (w < 0 || w >= (int)sizeof(web_py)) return 1;
-    int a = snprintf(alt_py, sizeof(alt_py), "%s/agy_web.py", dir);
-    if (a < 0 || a >= (int)sizeof(alt_py)) return 1;
-    int pkg = snprintf(web_pkg, sizeof(web_pkg), "%s/lib/web/server.py", dir);
-    if (pkg < 0 || pkg >= (int)sizeof(web_pkg)) return 1;
-    const char *web_script = NULL;
-    int use_module = 0;
-    if (access(web_pkg, R_OK) == 0) {
-        use_module = 1;
-    } else if (access(web_py, R_OK) == 0) web_script = web_py;
-    else if (access(alt_py, R_OK) == 0) web_script = alt_py;
-    if (!use_module && !web_script) {
-        // fallback to PREFIX share
-        const char *pfx = getenv("PREFIX");
-        if (pfx) {
-            char p2[PATH_MAX];
-            int wr = snprintf(p2, sizeof(p2), "%s/share/agy/agy_web.py", pfx);
-            if (wr > 0 && wr < (int)sizeof(p2) && access(p2, R_OK) == 0) {
-                web_script = p2;
-                snprintf(web_py, sizeof(web_py), "%s", p2);
-                web_script = web_py;
-            } else {
-                char p3[PATH_MAX];
-                int wr2 = snprintf(p3, sizeof(p3), "%s/share/agy/web/server.py", pfx);
-                if (wr2 > 0 && wr2 < (int)sizeof(p3) && access(p3, R_OK) == 0) {
-                    use_module = 1;
-                    snprintf(web_pkg, sizeof(web_pkg), "%s", p3);
+    const char *pfx = getenv("PREFIX");
+    char cand[PATH_MAX];
+
+    // modular web: try dir/lib/web, then PREFIX locations
+    const char *mod_cands[] = {NULL, NULL, NULL, NULL};
+    char c0[PATH_MAX], c1[PATH_MAX], c2[PATH_MAX];
+    snprintf(c0, sizeof(c0), "%s/lib/web/server.py", dir);
+    mod_cands[0] = c0;
+    if (pfx) {
+        snprintf(c1, sizeof(c1), "%s/share/agy/web/server.py", pfx);
+        snprintf(c2, sizeof(c2), "%s/lib/agy/web/server.py", pfx);
+        mod_cands[1] = c1;
+        mod_cands[2] = c2;
+    }
+    char lib_dir[PATH_MAX] = {0};
+    for (int i = 0; mod_cands[i]; i++) {
+        if (access(mod_cands[i], R_OK) == 0) {
+            // lib is parent of web
+            const char *slash = strrchr(mod_cands[i], '/');
+            if (slash) {
+                size_t dlen = (size_t)(slash - mod_cands[i]) - 4; // strip /web
+                if (dlen < sizeof(lib_dir)) {
+                    memcpy(lib_dir, mod_cands[i], dlen);
+                    lib_dir[dlen] = '\0';
                 }
             }
+            if (lib_dir[0] == '\0') snprintf(lib_dir, sizeof(lib_dir), "%s/lib", dir);
+            const char *old = getenv("PYTHONPATH");
+            char np[PATH_MAX * 2];
+            if (old && old[0]) snprintf(np, sizeof(np), "%s:%s", lib_dir, old);
+            else snprintf(np, sizeof(np), "%s", lib_dir);
+            setenv("PYTHONPATH", np, 1);
+            int py_argc = argc + 3;
+            char **py_argv = malloc((size_t)(py_argc + 1) * sizeof(*py_argv));
+            if (!py_argv) return 1;
+            int idx = 0;
+            py_argv[idx++] = (char *)"python3";
+            py_argv[idx++] = (char *)"-m";
+            py_argv[idx++] = (char *)"web";
+            for (int k = 2; k < argc; k++) py_argv[idx++] = argv[k];
+            py_argv[idx] = NULL;
+            execvp("python3", py_argv);
+            perror("[agy-termux] exec python3 -m web failed");
+            free(py_argv);
+            return 1;
         }
     }
-    if (!use_module && (!web_script || access(web_script, R_OK) != 0)) {
-        fprintf(stderr, "[agy-termux] agy_web.py not found next to agy binary.\n");
-        fprintf(stderr, "[agy-termux] Tried: %s and %s/share/agy/agy_web.py\n", web_pkg, getenv("PREFIX") ? getenv("PREFIX") : "");
-        return 1;
+
+    // legacy shim fallback
+    const char *shim_cands[] = {NULL, NULL, NULL, NULL, NULL};
+    char s0[PATH_MAX], s1[PATH_MAX], s2[PATH_MAX];
+    snprintf(s0, sizeof(s0), "%s/lib/agy_web.py", dir);
+    snprintf(s1, sizeof(s1), "%s/agy_web.py", dir);
+    shim_cands[0] = s0;
+    shim_cands[1] = s1;
+    if (pfx) {
+        snprintf(cand, sizeof(cand), "%s/share/agy/agy_web.py", pfx);
+        // reuse static buffer via copy
+        snprintf(s2, sizeof(s2), "%s", cand);
+        shim_cands[2] = s2;
     }
-    if (use_module) {
-        // Prefer modular: python3 -m web  (requires lib/web package next to agy)
-        char lib_dir[PATH_MAX];
-        int ld = snprintf(lib_dir, sizeof(lib_dir), "%s/lib", dir);
-        if (ld > 0 && ld < (int)sizeof(lib_dir)) {
-            const char *oldpy = getenv("PYTHONPATH");
-            char newpy[PATH_MAX*2];
-            if (oldpy && oldpy[0] != '\0') {
-                snprintf(newpy, sizeof(newpy), "%s:%s", lib_dir, oldpy);
-            } else {
-                snprintf(newpy, sizeof(newpy), "%s:%s/lib/..", lib_dir, dir);
-                // fallback: lib parent
-                snprintf(newpy, sizeof(newpy), "%s", lib_dir);
-                // also try parent of dir
-                char parent[PATH_MAX];
-                snprintf(parent, sizeof(parent), "%s", dir);
-                char *slash = strrchr(parent, '/');
-                if (slash) *slash = '\0';
-                snprintf(newpy, sizeof(newpy), "%s:%s", lib_dir, parent);
-            }
-            setenv("PYTHONPATH", newpy, 0);
-            // also ensure lib dir itself is in path via -m
+    for (int i = 0; shim_cands[i]; i++) {
+        if (access(shim_cands[i], R_OK) == 0) {
+            int py_argc = argc + 2;
+            char **py_argv = malloc((size_t)(py_argc + 1) * sizeof(*py_argv));
+            if (!py_argv) return 1;
+            int idx = 0;
+            py_argv[idx++] = (char *)"python3";
+            py_argv[idx++] = (char *)shim_cands[i];
+            for (int k = 2; k < argc; k++) py_argv[idx++] = argv[k];
+            py_argv[idx] = NULL;
+            execvp("python3", py_argv);
+            perror("[agy-termux] exec python3 agy_web.py failed");
+            free(py_argv);
+            return 1;
         }
-        int py_argc = argc + 3; // python3 -m web + args + NULL
-        char **py_argv = malloc((size_t)(py_argc + 1) * sizeof(*py_argv));
-        if (!py_argv) return 1;
-        int idx = 0;
-        py_argv[idx++] = (char *)"python3";
-        py_argv[idx++] = (char *)"-m";
-        py_argv[idx++] = (char *)"web";
-        for (int i = 2; i < argc; i++) py_argv[idx++] = argv[i];
-        py_argv[idx] = NULL;
-        // ensure PYTHONPATH includes lib parent so 'web' is found
-        char lib_parent[PATH_MAX];
-        snprintf(lib_parent, sizeof(lib_parent), "%s", dir);
-        // dir is bin dir; lib is dir/lib
-        const char *pp = getenv("PYTHONPATH");
-        char merged[PATH_MAX*2];
-        if (pp && pp[0] != '\0') {
-            snprintf(merged, sizeof(merged), "%s:%s", web_pkg, pp);
-            // web_pkg is .../lib/web/server.py, need its parent's parent
-        }
-        // simplest: set PYTHONPATH to dir/lib
-        char py_path[PATH_MAX];
-        snprintf(py_path, sizeof(py_path), "%s/lib", dir);
-        const char *existing = getenv("PYTHONPATH");
-        if (existing && existing[0] != '\0') {
-            char combined[PATH_MAX*2];
-            snprintf(combined, sizeof(combined), "%s:%s", py_path, existing);
-            setenv("PYTHONPATH", combined, 1);
-        } else {
-            setenv("PYTHONPATH", py_path, 1);
-        }
-        execvp("python3", py_argv);
-        perror("[agy-termux] exec python3 -m web failed");
-        free(py_argv);
-        return 1;
     }
-    // Legacy single-file fallback
-    int py_argc = argc + 2; // python3 + script + args + NULL
-    char **py_argv = malloc((size_t)(py_argc + 1) * sizeof(*py_argv));
-    if (!py_argv) return 1;
-    int idx = 0;
-    py_argv[idx++] = (char *)"python3";
-    py_argv[idx++] = (char *)web_script;
-    for (int i = 2; i < argc; i++) py_argv[idx++] = argv[i];
-    py_argv[idx] = NULL;
-    execvp("python3", py_argv);
-    perror("[agy-termux] exec python3 agy_web.py failed");
-    free(py_argv);
+    fprintf(stderr, "[agy-termux] web UI not found.\n");
+    fprintf(stderr, "[agy-termux] Tried: %s, %s/lib/agy_web.py, and %s/share/agy/agy_web.py\n", c0, dir, pfx ? pfx : "$PREFIX");
+    fprintf(stderr, "[agy-termux] Reinstall: curl -fsSL https://raw.githubusercontent.com/itswill00/antigravity-cli-termux/dev/install.sh | bash\n");
     return 1;
 }
 

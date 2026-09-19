@@ -191,7 +191,18 @@ jobs:
         ./build.sh
 
         echo "Packaging standalone release archive..."
-        tar -czf antigravity-termux-standalone.tar.gz -C bin agy agy.va39
+        rm -rf lib/web/__pycache__ lib/__pycache__ bin/lib 2>/dev/null || true
+        rm -rf _dist && mkdir -p _dist/lib
+        cp bin/agy bin/agy.va39 _dist/
+        [[ -f lib/agy_web.py ]] && cp lib/agy_web.py _dist/lib/
+        [[ -f lib/agy_img.py ]] && cp lib/agy_img.py _dist/lib/
+        if [[ -d lib/web ]]; then
+          mkdir -p _dist/lib/web
+          cp lib/web/*.py _dist/lib/web/ 2>/dev/null || true
+          cp lib/web/__init__.py _dist/lib/web/ 2>/dev/null || true
+          cp lib/web/__main__.py _dist/lib/web/ 2>/dev/null || true
+        fi
+        tar --exclude='__pycache__' --exclude='*.pyc' --exclude='*.pyo' -czf antigravity-termux-standalone.tar.gz -C _dist agy agy.va39 lib
 
         if [[ ! -f antigravity-termux-standalone.tar.gz ]]; then
           echo "Error: Release archive antigravity-termux-standalone.tar.gz was not generated." >&2

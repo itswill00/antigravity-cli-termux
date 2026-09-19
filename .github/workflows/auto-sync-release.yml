@@ -118,11 +118,20 @@ jobs:
         if: steps.check_version.outputs.build_needed == 'true'
         run: |
           echo "Packaging standalone release archive..."
-          tar -czf antigravity-termux-standalone.tar.gz -C bin agy agy.va39
-          # include helpers if present (modular lib/web + shim)
-          if [[ -d lib/web ]]; then tar -rf antigravity-termux-standalone.tar.gz -C . lib/web lib/agy_web.py 2>/dev/null || tar -czf antigravity-termux-standalone.tar.gz bin/agy bin/agy.va39 lib/agy_web.py lib/web; fi
-          if [[ -f lib/agy_web.py ]]; then tar -rf antigravity-termux-standalone.tar.gz -C . lib/agy_web.py lib/agy_img.py 2>/dev/null || tar -czf antigravity-termux-standalone.tar.gz bin/agy bin/agy.va39 lib/agy_web.py lib/agy_img.py; fi
+          rm -rf lib/web/__pycache__ lib/__pycache__ bin/lib 2>/dev/null || true
+          rm -rf _dist && mkdir -p _dist/lib
+          cp bin/agy bin/agy.va39 _dist/
+          [[ -f lib/agy_web.py ]] && cp lib/agy_web.py _dist/lib/
+          [[ -f lib/agy_img.py ]] && cp lib/agy_img.py _dist/lib/
+          if [[ -d lib/web ]]; then
+            mkdir -p _dist/lib/web
+            cp lib/web/*.py _dist/lib/web/ 2>/dev/null || true
+            cp lib/web/__init__.py _dist/lib/web/ 2>/dev/null || true
+            cp lib/web/__main__.py _dist/lib/web/ 2>/dev/null || true
+          fi
+          tar --exclude='__pycache__' --exclude='*.pyc' --exclude='*.pyo' -czf antigravity-termux-standalone.tar.gz -C _dist agy agy.va39 lib
           tar -tzf antigravity-termux-standalone.tar.gz
+          rm -rf _dist
 
       - name: Upload Standalone Archive to Run Artifacts
         if: steps.check_version.outputs.build_needed == 'true'

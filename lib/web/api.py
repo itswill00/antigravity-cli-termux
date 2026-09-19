@@ -12,24 +12,42 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 AGY_BIN = shutil.which("agy") or str(BIN_DIR / "agy")
 
+_models_cache = {"ts": 0, "data": None}
+
 def agy_models():
+    global _models_cache
+    now = time.time()
+    if _models_cache["data"] and now - _models_cache["ts"] < 30:
+        return _models_cache["data"]
     try:
         p = subprocess.run([AGY_BIN, "models"], capture_output=True, text=True, timeout=10)
         out = p.stdout.strip() + "\n" + p.stderr.strip()
         models = []
         for line in out.splitlines():
-            line=line.strip()
-            if not line or line.startswith("Fetching"): continue
-            parts = line.split("\t") if "\t" in line else line.split("  ")
+            line = line.strip()
+            if not line or line.startswith("Fetching"):
+                continue
+            if "\t" in line:
+                parts = line.split("\t")
+            else:
+                parts = re.split(r"\s{2,}", line, maxsplit=1)
             mid = parts[0].strip()
-            if mid and not mid.startswith("-") and " " not in mid or "-" in mid or "/" in mid or "." in mid:
-                if mid not in ("Available","Usage"):
-                    models.append({"id": mid, "label": parts[-1].strip() if len(parts)>1 else mid})
+            label = parts[1].strip() if len(parts) > 1 else mid
+            if not mid or mid in ("Available", "Usage"):
+                continue
+            if " " in mid and "/" not in mid and "-" not in mid:
+                continue
+            if not re.match(r"^[a-z0-9._/-]+$", mid.lower()):
+                continue
+            models.append({"id": mid, "label": label})
         if not models:
-            models = [{"id":"gemini-3.8-flash-medium","label":"Gemini 3.8 Flash (Medium)"}]
+            models = [{"id": "gemini-3.8-flash-medium", "label": "Gemini 3.8 Flash (Medium)"}]
+        _models_cache = {"ts": now, "data": models}
         return models
-    except Exception as e:
-        return [{"id":"gemini-3.8-flash-medium","label":"Gemini 3.8 Flash (Medium)"}]
+    except Exception:
+        if _models_cache["data"]:
+            return _models_cache["data"]
+        return [{"id": "gemini-3.8-flash-medium", "label": "Gemini 3.8 Flash (Medium)"}]
 
 def model_has_effort(mid: str) -> bool:
     low = mid.lower()
@@ -51,51 +69,86 @@ def _model_group(model_id: str) -> str:
         return "3p"
     return "gemini"  # default
 
+_quota_cache = {"ts": 0, "data": None}
+
 def agy_quota():
+    global _quota_cache
+    now = time.time()
+    if _quota_cache["data"] is not None and now - _quota_cache["ts"] < 15:
+        return _quota_cache["data"]
     try:
         p = subprocess.run([AGY_BIN, "--output-format", "json", "-p", "/usage"], capture_output=True, text=True, timeout=10)
         out = p.stdout.strip()
-        if out.startswith("{"):
-            j = json.loads(out)
-            cmd = j.get("command", {}).get("data", {})
-            groups = cmd.get("groups", [])
-            res=[]
-            for g in groups:
-                gid = g.get("name","")
-                # normalize group key: "Gemini Models" → gemini, "Claude and GPT models" → 3p
-                low = gid.lower()
-                if "gemini" in low:
-                    key = "gemini"
-                elif "claude" in low or "gpt" in low or "3p" in low:
-                    key = "3p"
+        if not out.startswith("{"):
+            return _quota_cache["data"] if _quota_cache["data"] is not None else []
+        j = json.loads(out)
+        cmd = j.get("command", {}).get("data", {})
+        groups = cmd.get("groups", [])
+        res = []
+        for g in groups:
+            gid = g.get("name", "")
+            low = gid.lower()
+            if "gemini" in low:
+                key = "gemini"
+            elif "claude" in low or "gpt" in low or "3p" in low:
+                key = "3p"
+            else:
+                key = gid
+            buckets = []
+            for b in g.get("buckets", []):
+                rem = b.get("remaining_fraction", 1.0)
+                try:
+                    rem = float(rem)
+                except Exception:
+                    rem = 1.0
+                rem = max(0.0, min(1.0, rem))
+                used = 1.0 - rem
+                bid = b.get("id", "") or b.get("name", "")
+                bname = str(b.get("name", "")).lower()
+                if b.get("window"):
+                    win = b["window"]
+                elif "5h" in bid or "5h" in bname:
+                    win = "5h"
+                elif "weekly" in bid.lower() or "weekly" in bname:
+                    win = "weekly"
                 else:
-                    key = gid
-                buckets=[]
-                for b in g.get("buckets", []):
-                    rem = b.get("remaining_fraction", 1.0)
-                    try: rem = float(rem)
-                    except: rem=1.0
-                    used = 1.0 - rem
-                    bid = b.get("id","") or b.get("name","")
-                    win = b.get("window","") or ("5h" if "5" in bid or "5h" in b.get("name","").lower() else "weekly" if "weekly" in bid.lower() or "weekly" in b.get("name","").lower() else "")
-                    buckets.append({"id": bid, "name": b.get("name",""), "window": win, "used_pct": int(round(used*100)), "avail_pct": int(round(rem*100)), "remaining": rem, "reset": b.get("reset_time","")})
-                res.append({"key": key, "name": gid, "buckets": buckets})
-            return res
-        return []
+                    win = b.get("id", "")[:16] or "window"
+                buckets.append({"id": bid, "name": b.get("name", ""), "window": win, "used_pct": int(round(used * 100)), "avail_pct": int(round(rem * 100)), "remaining": rem, "reset": b.get("reset_time", "")})
+            res.append({"key": key, "name": gid, "buckets": buckets})
+        _quota_cache = {"ts": now, "data": res}
+        return res
     except Exception:
+        if _quota_cache["data"] is not None:
+            return _quota_cache["data"]
         return []
 
+_cmds_cache = {"ts": 0, "data": None}
+
 def agy_commands():
+    global _cmds_cache
+    now = time.time()
+    if _cmds_cache["data"] is not None and now - _cmds_cache["ts"] < 60:
+        return _cmds_cache["data"]
     try:
         p = subprocess.run([AGY_BIN, "--output-format", "json", "-p", "/help"], capture_output=True, text=True, timeout=10)
         out = p.stdout.strip()
         if out.startswith("{"):
             j = json.loads(out)
-            cmds = j.get("command", {}).get("data", {}).get("commands", [])
-            return [{"name": c.get("name",""), "description": c.get("description","")} for c in cmds]
-        return []
+            raw = j.get("command", {}).get("data", {}).get("commands", [])
+            seen = set()
+            cmds = []
+            for c in raw:
+                name = (c.get("name") or "").strip()
+                if not name or name in seen:
+                    continue
+                seen.add(name)
+                desc = c.get("description") or ""
+                cmds.append({"name": name, "description": desc, "aliases": c.get("aliases") or []})
+            _cmds_cache = {"ts": now, "data": cmds}
+            return cmds
+        return _cmds_cache["data"] if _cmds_cache["data"] is not None else []
     except Exception:
-        return []
+        return _cmds_cache["data"] if _cmds_cache["data"] is not None else []
 
 def agy_version():
     try:
@@ -112,27 +165,44 @@ def agy_sessions(limit=30):
     db = pathlib.Path.home() / ".gemini" / "antigravity-cli" / "conversation_summaries.db"
     if not db.exists():
         return []
+    if limit < 1:
+        limit = 30
+    limit = min(limit, 100)
     try:
         con = sqlite3.connect(str(db))
+        con.row_factory = sqlite3.Row
         cur = con.cursor()
         cur.execute("select conversation_id, title, preview, step_count, last_modified_time, workspace_uris, project_id from conversation_summaries order by last_modified_time desc limit ?", (limit,))
-        rows=[]
-        for cid, title, preview, sc, lm, ws, pid in cur.fetchall():
-            # compact workspace
-            ws_short=""
+        rows = []
+        for r in cur.fetchall():
+            cid, title, preview, sc, lm, ws, pid = r[0], r[1], r[2], r[3], r[4], r[5], r[6]
+            ws_short = ""
             if ws:
                 try:
-                    ws_short = ws.replace("file:///data/data/com.termux/files/home", "~")
-                except:
-                    ws_short = ws
-            rows.append({"id": cid, "title": title or preview or cid[:8], "preview": preview or title or "", "steps": sc, "updated": str(lm), "workspace": ws_short[:80], "project": pid})
+                    ws_short = str(ws).replace("file:///data/data/com.termux/files/home", "~")
+                except Exception:
+                    ws_short = str(ws)[:80]
+            rows.append({"id": cid, "title": (title or preview or cid[:8])[:120], "preview": (preview or title or "")[:300], "steps": sc, "updated": str(lm), "workspace": ws_short[:80], "project": pid})
         con.close()
         return rows
     except Exception:
         return []
+    finally:
+        try:
+            con.close()
+        except Exception:
+            pass
+
 
 def agy_session_messages(cid, limit=80):
     import sqlite3, re
+    if not cid or not re.match(r"^[0-9a-fA-F-]{8,64}$", cid):
+        # still allow any non-empty but prevent path traversal
+        if ".." in cid or "/" in cid or "\\" in cid:
+            return None
+    if limit < 1:
+        limit = 80
+    limit = min(limit, 200)
     db = pathlib.Path.home() / ".gemini" / "antigravity-cli" / "conversations" / f"{cid}.db"
     if not db.exists():
         return None
@@ -217,13 +287,15 @@ def agy_session_messages(cid, limit=80):
                     if not txt.isalpha():
                         continue
             msgs.append({"role": role, "text": txt, "type": stype})
-            if len(msgs)>=limit:
-                pass
         con.close()
-        # keep last limit messages (recent)
-        if len(msgs)>limit:
-            msgs=msgs[-limit:]
+        if len(msgs) > limit:
+            msgs = msgs[-limit:]
         return msgs
     except Exception:
         return []
+    finally:
+        try:
+            con.close()
+        except Exception:
+            pass
 

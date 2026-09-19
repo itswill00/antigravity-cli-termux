@@ -1,8 +1,35 @@
 import http.server, json, os, pathlib, mimetypes, urllib.parse, time
-import subprocess, base64, tempfile, shutil, threading, re, sys, hashlib
+import subprocess, base64, tempfile, shutil, threading, re, sys, hashlib, signal
 
 from .api import agy_models, agy_quota, agy_commands, agy_version, agy_sessions, agy_session_messages, AGY_BIN, UPLOAD_DIR, resolve_model_effort
 from .ui import HTML
+
+_rate = {"lock": threading.Lock(), "tokens": {}}
+
+def _check_rate(ip: str) -> bool:
+    now = time.time()
+    with _rate["lock"]:
+        rec = _rate["tokens"].get(ip)
+        if not rec or now - rec["t"] > 60:
+            _rate["tokens"][ip] = {"t": now, "n": 1}
+            return True
+        if rec["n"] >= 30:
+            return False
+        rec["n"] += 1
+        return True
+
+
+def _cleanup_uploads():
+    try:
+        now = time.time()
+        for p in UPLOAD_DIR.glob("agy-*"):
+            try:
+                if now - p.stat().st_mtime > 3600:
+                    p.unlink()
+            except Exception:
+                pass
+    except Exception:
+        pass
 
 
 class Handler(http.server.BaseHTTPRequestHandler):
@@ -20,66 +47,73 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.send_header("X-Content-Type-Options","nosniff")
         super().end_headers()
 
+    def _json(self, obj, code=200):
+        body = json.dumps(obj, ensure_ascii=False).encode()
+        try:
+            self.send_response(code); self.send_header("Content-Type","application/json"); self.send_header("Content-Length",str(len(body))); self.end_headers(); self.wfile.write(body)
+        except (BrokenPipeError, ConnectionResetError, OSError): pass
+
+    def _html(self, html: bytes):
+        try:
+            self.send_response(200); self.send_header("Content-Type","text/html; charset=utf-8"); self.send_header("Content-Length",str(len(html))); self.end_headers(); self.wfile.write(html)
+        except (BrokenPipeError, ConnectionResetError, OSError): pass
+
     def do_GET(self):
         p = urllib.parse.urlparse(self.path).path
+        q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
         if p in ("/","/index.html"):
-            body = HTML.encode()
-            try:
-                self.send_response(200); self.send_header("Content-Type","text/html; charset=utf-8"); self.send_header("Content-Length",str(len(body))); self.end_headers(); self.wfile.write(body)
-            except (BrokenPipeError, ConnectionResetError, OSError): pass
-            return
+            self._html(HTML.encode()); return
         if p == "/api/models":
-            models = agy_models()
-            body = json.dumps({"models":models}).encode()
-            try:
-                self.send_response(200); self.send_header("Content-Type","application/json"); self.send_header("Content-Length",str(len(body))); self.end_headers(); self.wfile.write(body)
-            except (BrokenPipeError, ConnectionResetError, OSError): pass
-            return
+            self._json({"models": agy_models()}); return
         if p == "/api/health":
             ok = shutil.which("agy") is not None
             ver = agy_version()
-            body = json.dumps({"ok":ok, "agy":AGY_BIN, "version": ver}).encode()
-            try:
-                self.send_response(200); self.send_header("Content-Type","application/json"); self.send_header("Content-Length",str(len(body))); self.end_headers(); self.wfile.write(body)
-            except (BrokenPipeError, ConnectionResetError, OSError): pass
-            return
+            self._json({"ok": ok, "agy": AGY_BIN, "version": ver}); return
         if p == "/api/quota":
-            groups = agy_quota()
-            body = json.dumps({"groups": groups}).encode()
-            try:
-                self.send_response(200); self.send_header("Content-Type","application/json"); self.send_header("Content-Length",str(len(body))); self.end_headers(); self.wfile.write(body)
-            except (BrokenPipeError, ConnectionResetError, OSError): pass
-            return
+            self._json({"groups": agy_quota()}); return
         if p == "/api/commands":
-            cmds = agy_commands()
-            body = json.dumps({"commands": cmds}).encode()
-            try:
-                self.send_response(200); self.send_header("Content-Type","application/json"); self.send_header("Content-Length",str(len(body))); self.end_headers(); self.wfile.write(body)
-            except (BrokenPipeError, ConnectionResetError, OSError): pass
-            return
+            self._json({"commands": agy_commands()}); return
         if p == "/api/sessions":
-            sessions = agy_sessions()
-            body = json.dumps({"sessions": sessions}).encode()
-            try:
-                self.send_response(200); self.send_header("Content-Type","application/json"); self.send_header("Content-Length",str(len(body))); self.end_headers(); self.wfile.write(body)
-            except (BrokenPipeError, ConnectionResetError, OSError): pass
-            return
+            limit = 30
+            try: limit = min(100, max(1, int((q.get("limit", ["30"])[0]))))
+            except Exception: pass
+            self._json({"sessions": agy_sessions(limit=limit)}); return
         if p.startswith("/api/session/"):
             parts = p.split("/")
-            if len(parts)>=4 and parts[3]:
-                cid = parts[3]
-                msgs = agy_session_messages(cid)
+            if len(parts) >= 4 and parts[3]:
+                cid = urllib.parse.unquote(parts[3])
+                limit = 80
+                try: limit = min(200, max(1, int((q.get("limit", ["80"])[0]))))
+                except Exception: pass
+                msgs = agy_session_messages(cid, limit=limit)
                 if msgs is None:
                     self.send_error(404,"session not found"); return
-                body = json.dumps({"id": cid, "messages": msgs}).encode()
-                try:
-                    self.send_response(200); self.send_header("Content-Type","application/json"); self.send_header("Content-Length",str(len(body))); self.end_headers(); self.wfile.write(body)
-                except (BrokenPipeError, ConnectionResetError, OSError): pass
-                return
+                self._json({"id": cid, "messages": msgs}); return
             self.send_error(404,"not found"); return
+        if p == "/api/export":
+            cid = (q.get("id", [""])[0] or "").strip()
+            if not cid:
+                self.send_error(400,"missing id"); return
+            msgs = agy_session_messages(cid, limit=200)
+            if msgs is None:
+                self.send_error(404,"session not found"); return
+            lines = [f"# Antigravity session {cid}", ""]
+            for m in msgs:
+                role = "You" if m["role"] == "user" else "Antigravity"
+                lines.append(f"## {role}")
+                lines.append(m["text"])
+                lines.append("")
+            body = "\n".join(lines).encode()
+            try:
+                self.send_response(200); self.send_header("Content-Type","text/markdown; charset=utf-8"); self.send_header("Content-Disposition", f'attachment; filename="agy-{cid[:8]}.md"'); self.send_header("Content-Length",str(len(body))); self.end_headers(); self.wfile.write(body)
+            except (BrokenPipeError, ConnectionResetError, OSError): pass
+            return
         self.send_error(404,"not found")
 
     def do_POST(self):
+        client_ip = self.client_address[0] if self.client_address else "0.0.0.0"
+        if not _check_rate(client_ip):
+            self.send_error(429,"too many requests"); return
         p = urllib.parse.urlparse(self.path).path
         if p not in ("/api/chat","/api/chat_stream"):
             self.send_error(404,"not found"); return
@@ -96,6 +130,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         model = (data.get("model") or "").strip()
         effort = (data.get("effort") or "").strip()
         conversation_id = (data.get("conversation_id") or "").strip()
+        if conversation_id and (".." in conversation_id or "/" in conversation_id or "\\" in conversation_id):
+            self.send_error(400,"bad conversation_id"); return
         image = data.get("image")
         if not prompt and not image:
             self.send_error(400,"empty prompt"); return
@@ -105,14 +141,20 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 b64 = image["data"]
                 if "," in b64 and b64.startswith("data:"):
                     b64 = b64.split(",",1)[1]
-                blob = base64.b64decode(b64)
+                b64 = re.sub(r"\s+", "", b64)
+                blob = base64.b64decode(b64, validate=True)
                 if len(blob) > 10*1024*1024:
-                    self.send_response(400); self.end_headers(); self.wfile.write(json.dumps({"error":"image too large (10MB)"}).encode()); return
+                    self._json({"error":"image too large (10MB)"}, 400); return
+                if len(blob) < 16:
+                    self._json({"error":"image too small"}, 400); return
                 mime = image.get("mime") or "image/jpeg"
                 ext = {"image/jpeg":".jpg","image/png":".png","image/webp":".webp","image/gif":".gif"}.get(mime, ".jpg")
                 if blob[:2]==b"\xff\xd8": ext=".jpg"
                 elif blob[:8]==b"\x89PNG\r\n\x1a\n": ext=".png"
                 elif blob[:4]==b"RIFF" and b"WEBP" in blob[:16]: ext=".webp"
+                elif blob[:6] in (b"GIF87a", b"GIF89a"): ext=".gif"
+                else:
+                    self._json({"error":"unsupported image format (jpg/png/webp/gif only)"}, 400); return
                 fname = f"agy-{int(time.time()*1000)}-{hashlib.sha1(blob[:1024]).hexdigest()[:6]}{ext}"
                 img_path = UPLOAD_DIR / fname
                 img_path.write_bytes(blob)
@@ -121,11 +163,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 else:
                     prompt = f"@{img_path} describe this image"
             except Exception as e:
-                self.send_response(400); self.end_headers(); self.wfile.write(json.dumps({"error":f"bad image: {e}"}).encode()); return
+                self._json({"error":f"bad image: {e}"}, 400); return
         if not prompt:
             prompt = "hello"
+        if len(prompt) > 120000:
+            self._json({"error":"prompt too long (120k chars max)"}, 400); return
         model, effort = resolve_model_effort(model, effort)
-        # stream path
+        _cleanup_uploads()
         if is_stream:
             args = [AGY_BIN, "--output-format", "stream-json"]
             if conversation_id:
@@ -144,25 +188,22 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 self.send_header("X-Content-Type-Options","nosniff")
                 self.send_header("Connection","close")
                 self.end_headers()
-                proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1, env=env)
-                # stream loop - check client disconnect via wfile
+                proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1, env=env, start_new_session=True)
                 try:
                     for line in proc.stdout:
                         if not line.strip():
                             continue
                         try:
                             j = json.loads(line)
-                        except:
+                        except Exception:
                             continue
                         ev = j.get("event")
                         out = None
                         if ev == "step_update":
                             su = j.get("step_update",{})
-                            # tool activity preview (CLI shows what agy is doing)
                             tname = su.get("tool_name")
                             if tname and su.get("state") in ("ACTIVE","DONE"):
                                 info = su.get("tool_info") or {}
-                                # truncate output for preview
                                 params = (info.get("parameters") or {})
                                 summary = ""
                                 if params.get("CommandLine"):
@@ -176,12 +217,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
                                     self.wfile.write(out.encode()); self.wfile.flush()
                                 except (BrokenPipeError, ConnectionResetError, OSError):
                                     break
-                                # DONE with output - also forward output snippet if present
                                 if su.get("state")=="DONE" and info.get("output"):
                                     out2 = json.dumps({"t":"tool_out","name": tname, "output": str(info["output"])[:600]}, ensure_ascii=False) + "\n"
                                     try:
                                         self.wfile.write(out2.encode()); self.wfile.flush()
-                                    except:
+                                    except (BrokenPipeError, ConnectionResetError, OSError):
                                         break
                                 continue
                             delta = su.get("text_delta")
@@ -204,33 +244,34 @@ class Handler(http.server.BaseHTTPRequestHandler):
                                 self.wfile.write(out.encode()); self.wfile.flush()
                             except (BrokenPipeError, ConnectionResetError, OSError):
                                 break
-                    # ensure proc cleaned
                     try:
                         proc.wait(timeout=2)
-                    except:
+                    except Exception:
                         pass
                 except (BrokenPipeError, ConnectionResetError, OSError):
                     pass
                 finally:
                     try:
                         if proc.poll() is None:
-                            proc.terminate()
+                            try: os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+                            except Exception: proc.terminate()
                             try: proc.wait(timeout=1)
-                            except: proc.kill()
-                    except:
+                            except Exception:
+                                try: os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+                                except Exception: proc.kill()
+                    except Exception:
                         pass
                     try: proc.stdout.close()
-                    except: pass
+                    except Exception: pass
                     try: proc.stderr.close()
-                    except: pass
+                    except Exception: pass
             except Exception as e:
                 try:
                     err = json.dumps({"t":"error","error": str(e)}, ensure_ascii=False) + "\n"
                     self.wfile.write(err.encode())
-                except:
+                except Exception:
                     pass
             return
-        # non-stream fallback (legacy)
         args = [AGY_BIN, "--output-format", "json"]
         if conversation_id:
             args += ["--conversation", conversation_id]
@@ -256,27 +297,19 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     usage = parsed.get("usage")
                     duration = parsed.get("duration_seconds")
                     if parsed.get("status") == "ERROR":
-                        resp = {"error": parsed.get("error") or err or "agy error", "usage": usage, "duration": duration}
-                        body = json.dumps(resp, ensure_ascii=False).encode()
-                        self.send_response(200); self.send_header("Content-Type","application/json"); self.send_header("Content-Length",str(len(body))); self.end_headers(); self.wfile.write(body); return
+                        self._json({"error": parsed.get("error") or err or "agy error", "usage": usage, "duration": duration}); return
             except Exception:
                 pass
             if proc.returncode != 0 and not resp_text:
-                resp = {"error": err[:2000] or f"agy exit {proc.returncode}", "usage": usage, "duration": duration}
-            else:
-                if "AGY_ERROR" in err and not resp_text:
-                    resp = {"error": err[:3000], "usage": usage, "duration": duration}
-                else:
-                    resp = {"response": resp_text or err or "(empty)", "usage": usage, "duration": duration, "model": model, "effort": effort, "conversation_id": parsed.get("conversation_id") if parsed else None}
+                self._json({"error": err[:2000] or f"agy exit {proc.returncode}", "usage": usage, "duration": duration}); return
+            if "AGY_ERROR" in err and not resp_text:
+                self._json({"error": err[:3000], "usage": usage, "duration": duration}); return
+            self._json({"response": resp_text or err or "(empty)", "usage": usage, "duration": duration, "model": model, "effort": effort, "conversation_id": parsed.get("conversation_id") if parsed else None})
         except subprocess.TimeoutExpired:
-            resp = {"error":"agy timeout (180s) — prompt too long or model busy"}
+            self._json({"error":"agy timeout (180s) — prompt too long or model busy"})
         except Exception as e:
-            resp = {"error": str(e)}
             import traceback; traceback.print_exc()
-        body = json.dumps(resp, ensure_ascii=False).encode()
-        try:
-            self.send_response(200); self.send_header("Content-Type","application/json"); self.send_header("Content-Length",str(len(body))); self.end_headers(); self.wfile.write(body)
-        except (BrokenPipeError, ConnectionResetError, OSError): pass
+            self._json({"error": str(e)}, 500)
 
 def main():
     import argparse, webbrowser, socket

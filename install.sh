@@ -290,7 +290,7 @@ mkdir -p "$EXTRACT_DIR"
 download_with_progress "$URL" "$TMP" || die
 
 # ── Extraction ────────────────────────────────────────────────────────────────
-tar -xz -C "$EXTRACT_DIR" -f "$TMP" agy agy.va39 >/dev/null 2>&1 &
+tar -xz -C "$EXTRACT_DIR" -f "$TMP" >/dev/null 2>&1 &
 spinner $! "Extracting binaries..." || die
 
 AGY_BAK=""
