@@ -4,6 +4,19 @@
 
 The terminal-first surface to interact with Antigravity agents. Stay in your flow without context switching.
 
+## 1.2.8
+
+- Refactored `agy web` UI: completely stripped AI slop aesthetics, removed glowing LED dots, pulsing halo shadows, and rainbow badges across the interface.
+- Redesigned assistant chat bubbles and avatar: aligned with Antigravity developer aesthetic with `#38bdf8` cyan branding, comfortable zinc contrast, and clean borders.
+- Streamlined Session and Model picker modals: redesigned into clean, dedicated card lists with subtle focus states and full model identifiers.
+- Polished micro-interactions: removed bouncy scale transforms on buttons and cards for a grounded, fast developer tool feel.
+
+## 1.2.7
+
+- Added `agy web` browser UI (`lib/web` modular package + `lib/agy_web.py` shim, `agy_helper.c` prefers `python3 -m web`): streaming via `agy --output-format stream-json` (`/api/chat_stream` NDJSON `t:delta/t:done`), live thinking with tool preview (`run_command` · command + output snippet) and Stop via `AbortController`, markdown (headings/tables/lists/blockquote/code Copy), slash autocomplete (`/api/commands`), quota badge `used|avail` via `/api/quota`, version pill `v1.2.6`, 7px balanced header with Sessions in `toolbar-right` (text-only), `--composer-h` + `ResizeObserver` for last bubble, auto-open Chrome via `termux-open-url` when `TERMUX_VERSION` set, `BrokenPipe` suppression.
+- Added session resume like `opencode` — `GET /api/sessions` from `conversation_summaries.db` and `GET /api/session/<id>/messages` (heuristic extract `type 14=user/15=assistant`, cap 80 recent, filters `.gemini` noise), overlay picker (640px, compact cards) with resume via `--conversation` and namespaced `localStorage`.
+- Improved `build.sh` to handle modular `lib/web` copy to `bin/lib/web` and `install.sh` to install `lib/web/*.py` to `share/agy/web` and `lib/agy/web`.
+
 ## 1.2.6
 
 - Added Remote Control (start a connection via `--remote-control` startup flag or `/remote-control` slash command) to create a session-scoped remote connection for following and controlling your active terminal session from another device. Typing `/remote-control off` or closing the session automatically tears down the tunnel and unregisters the device from the active Remote Control session list.
