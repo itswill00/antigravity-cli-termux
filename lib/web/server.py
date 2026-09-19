@@ -115,6 +115,25 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if not _check_rate(client_ip):
             self.send_error(429,"too many requests"); return
         p = urllib.parse.urlparse(self.path).path
+        if p == "/api/bash":
+            length = int(self.headers.get("Content-Length","0"))
+            if length > 4096: self.send_error(413,"too large"); return
+            raw = self.rfile.read(length) if length else b"{}"
+            try: data = json.loads(raw)
+            except Exception as e: self.send_error(400,f"bad json {e}"); return
+            cmd = (data.get("cmd") or "").strip()
+            if not cmd: self._json({"error":"empty command"}, 400); return
+            if len(cmd) > 2000: self._json({"error":"command too long"}, 400); return
+            try:
+                proc = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=15)
+                out = (proc.stdout or "") + (proc.stderr or "")
+                if not out.strip(): out = f"(exit {proc.returncode})"
+                self._json({"output": out[:12000], "code": proc.returncode})
+            except subprocess.TimeoutExpired:
+                self._json({"error":"timeout (15s)"}, 500)
+            except Exception as e:
+                self._json({"error": str(e)}, 500)
+            return
         if p not in ("/api/chat","/api/chat_stream"):
             self.send_error(404,"not found"); return
         is_stream = (p == "/api/chat_stream")

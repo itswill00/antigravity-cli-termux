@@ -646,7 +646,7 @@ header{
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
   color:var(--text-muted);
 }
-.modal-body{padding:8px 10px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;flex:1}
+.modal-body{padding:8px 10px;overflow-y:auto;display:flex;flex-direction:column;gap:0;flex:1}
 .session-item{
   background:var(--surface);
   border:1px solid var(--border);
@@ -787,30 +787,29 @@ header{
 }
 
 .model-item{
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:var(--radius-md);
-  padding:9px 12px;
+  background:transparent;
+  border:0;
+  border-bottom:1px solid var(--border);
+  border-radius:0;
+  padding:10px 12px;
   cursor:pointer;
   display:flex;
   align-items:center;
   justify-content:space-between;
   gap:10px;
   text-align:left;
-  transition:background 0.12s ease, border-color 0.12s ease;
+  transition:background 0.12s ease;
   width:100%;
 }
+.model-item:first-child{border-top:1px solid var(--border)}
 .model-item:hover{
   background:var(--surface-hover);
-  border-color:var(--border-light);
 }
 .model-item.active{
   background:var(--surface-active);
-  border-color:var(--accent);
 }
 .model-item.nav-focused{
   background:var(--surface-hover);
-  border-color:var(--border-focus);
 }
 .model-item-main{flex:1;min-width:0}
 .model-item-label{
@@ -821,6 +820,19 @@ header{
   overflow:hidden;
   text-overflow:ellipsis;
   line-height:1.3;
+}
+.model-item-tag{
+  display:inline-flex;
+  align-items:center;
+  font-size:10px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--text-muted);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  padding:0 5px;
+  height:16px;
+  margin-left:6px;
+  vertical-align:middle;
 }
 .model-item-id{
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
@@ -834,7 +846,7 @@ header{
 .model-check{
   width:14px;
   height:14px;
-  color:var(--text);
+  color:var(--accent);
   flex:0 0 14px;
   opacity:0;
 }
@@ -1465,9 +1477,10 @@ function renderModelList(models){
     card.type='button';
     card.dataset.id=m.id;
 
+    const fam=(m.id||'').toLowerCase().startsWith('gemini') ? 'Gemini' : (m.id.toLowerCase().startsWith('claude')||m.id.toLowerCase().startsWith('gpt') ? 'Claude/GPT' : '');
     card.innerHTML=`
       <div class="model-item-main">
-        <div class="model-item-label">${esc(m.label || m.id)}</div>
+        <div class="model-item-label">${esc(m.label || m.id)}${fam ? `<span class="model-item-tag">${fam}</span>` : ''}</div>
         <div class="model-item-id">${esc(m.id)}</div>
       </div>
       <svg class="model-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
@@ -1803,6 +1816,9 @@ promptEl.addEventListener('input', ()=>{
     const m=v.slice(1).split(/\s/)[0];
     showSlash(m);
     slashActive=-1;
+  } else if(v.startsWith('!')){
+    slashMenu.innerHTML='<div class="slash-item active"><b>! '+esc(v.slice(1).slice(0,60))+'</b><span>Run shell command (Enter to execute)</span></div>';
+    slashMenu.classList.add('on');
   } else {
     slashMenu.classList.remove('on');
   }
@@ -2126,6 +2142,32 @@ async function send(){
   const text=promptEl.value.trim();
   if(!text && !pendingImage) return;
 
+  if(text.startsWith('!')){
+    const cmd=text.slice(1).trim();
+    if(!cmd){ promptEl.value=''; autoSize(); return; }
+    const snap=text;
+    history.push({role:'user', text:snap});
+    render(); saveHistory();
+    promptEl.value=''; autoSize();
+    const th={role:'assistant', text:'', thinking:true, model:'bash'};
+    history.push(th); render();
+    setStreaming(true);
+    currentAbort=new AbortController();
+    try{
+      const r=await fetch('/api/bash', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({cmd}), signal:currentAbort.signal});
+      const j=await r.json();
+      th.thinking=false;
+      if(j.error) th.text=`! ${esc(cmd)}\n\n**error:** ${esc(j.error)}`;
+      else th.text=`\`! ${esc(cmd)}\`  \nexit ${j.code}\n\n\`\`\`\n${j.output||'(empty)'}\n\`\`\``;
+      th.duration=null; th.model='bash';
+    }catch(e){
+      th.thinking=false;
+      th.text=`! ${esc(cmd)}\n\n**error:** ${esc(String(e))}`;
+    }
+    setStreaming(false); render(); saveHistory();
+    try{ loadQuota(); }catch(e){}
+    return;
+  }
   if(text.startsWith('/model')){
     const parts=text.split(/\s+/).filter(Boolean);
     slashMenu.classList.remove('on');
