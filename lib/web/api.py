@@ -42,6 +42,15 @@ def resolve_model_effort(model: str, effort: str):
         return model, ""
     return model, effort
 
+def _model_group(model_id: str) -> str:
+    low = (model_id or "").lower()
+    # agy: gemini-* → Gemini Models, else Claude/GPT → Claude and GPT models
+    if low.startswith("gemini"):
+        return "gemini"
+    if low.startswith("claude") or low.startswith("gpt-"):
+        return "3p"
+    return "gemini"  # default
+
 def agy_quota():
     try:
         p = subprocess.run([AGY_BIN, "--output-format", "json", "-p", "/usage"], capture_output=True, text=True, timeout=10)
@@ -52,14 +61,25 @@ def agy_quota():
             groups = cmd.get("groups", [])
             res=[]
             for g in groups:
+                gid = g.get("name","")
+                # normalize group key: "Gemini Models" → gemini, "Claude and GPT models" → 3p
+                low = gid.lower()
+                if "gemini" in low:
+                    key = "gemini"
+                elif "claude" in low or "gpt" in low or "3p" in low:
+                    key = "3p"
+                else:
+                    key = gid
                 buckets=[]
                 for b in g.get("buckets", []):
                     rem = b.get("remaining_fraction", 1.0)
                     try: rem = float(rem)
                     except: rem=1.0
                     used = 1.0 - rem
-                    buckets.append({"name": b.get("name",""), "used_pct": int(round(used*100)), "avail_pct": int(round(rem*100)), "remaining": rem, "reset": b.get("reset_time","")})
-                res.append({"name": g.get("name",""), "buckets": buckets})
+                    bid = b.get("id","") or b.get("name","")
+                    win = b.get("window","") or ("5h" if "5" in bid or "5h" in b.get("name","").lower() else "weekly" if "weekly" in bid.lower() or "weekly" in b.get("name","").lower() else "")
+                    buckets.append({"id": bid, "name": b.get("name",""), "window": win, "used_pct": int(round(used*100)), "avail_pct": int(round(rem*100)), "remaining": rem, "reset": b.get("reset_time","")})
+                res.append({"key": key, "name": gid, "buckets": buckets})
             return res
         return []
     except Exception:
