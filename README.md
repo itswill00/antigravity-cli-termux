@@ -114,6 +114,7 @@ agy web --port 8765 --open
 agy web --host 0.0.0.0  # LAN (pair with Cloudflare Tunnel / auth)
 # attach photos: click 📎 Foto, paste (Ctrl+V), or drag-drop — forwarded as @/tmp/... to agy
 ```
+> Modular package `lib/web/{api,ui,server}.py` with shim `lib/agy_web.py` (streaming via `stream-json`, live tool preview, markdown, slash, quota `used|avail`, sessions via `conversation_summaries.db`, auto-open Chrome) — `build.sh` and `install.sh` handle `lib/web` archive.
 
 #### `agy-img` — single-shot vision
 ```bash

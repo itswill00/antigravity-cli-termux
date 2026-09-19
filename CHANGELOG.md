@@ -4,6 +4,12 @@
 
 The terminal-first surface to interact with Antigravity agents. Stay in your flow without context switching.
 
+## 1.2.7
+
+- Added `agy web` browser UI (`lib/web` modular package + `lib/agy_web.py` shim, `agy_helper.c` prefers `python3 -m web`): streaming via `agy --output-format stream-json` (`/api/chat_stream` NDJSON `t:delta/t:done`), live thinking with tool preview (`run_command` · command + output snippet) and Stop via `AbortController`, markdown (headings/tables/lists/blockquote/code Copy), slash autocomplete (`/api/commands`), quota badge `used|avail` via `/api/quota`, version pill `v1.2.6`, 7px balanced header with Sessions in `toolbar-right` (text-only), `--composer-h` + `ResizeObserver` for last bubble, auto-open Chrome via `termux-open-url` when `TERMUX_VERSION` set, `BrokenPipe` suppression.
+- Added session resume like `opencode` — `GET /api/sessions` from `conversation_summaries.db` and `GET /api/session/<id>/messages` (heuristic extract `type 14=user/15=assistant`, cap 80 recent, filters `.gemini` noise), overlay picker (640px, compact cards) with resume via `--conversation` and namespaced `localStorage`.
+- Improved `build.sh` to handle modular `lib/web` copy to `bin/lib/web` and `install.sh` to install `lib/web/*.py` to `share/agy/web` and `lib/agy/web`.
+
 ## 1.2.6
 
 - Added Remote Control (start a connection via `--remote-control` startup flag or `/remote-control` slash command) to create a session-scoped remote connection for following and controlling your active terminal session from another device. Typing `/remote-control off` or closing the session automatically tears down the tunnel and unregisters the device from the active Remote Control session list.
