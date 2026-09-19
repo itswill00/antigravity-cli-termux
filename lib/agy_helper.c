@@ -15,7 +15,7 @@
 #endif
 
 #ifndef AGY_TERMUX_VERSION
-#define AGY_TERMUX_VERSION "1.2.6"
+#define AGY_TERMUX_VERSION "1.2.8"
 #endif
 
 #define AGY_DEFAULT_REPO "itswill00/antigravity-cli-termux"
