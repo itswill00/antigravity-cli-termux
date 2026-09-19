@@ -1,7 +1,7 @@
 import http.server, json, os, pathlib, mimetypes, urllib.parse, time
 import subprocess, base64, tempfile, shutil, threading, re, sys, hashlib, signal
 
-from .api import agy_models, agy_quota, agy_commands, agy_version, agy_sessions, agy_session_messages, AGY_BIN, UPLOAD_DIR, resolve_model_effort
+from .api import agy_models, agy_quota, agy_commands, agy_version, agy_standalone_version, agy_sessions, agy_session_messages, AGY_BIN, UPLOAD_DIR, resolve_model_effort
 from .ui import HTML
 
 _rate = {"lock": threading.Lock(), "tokens": {}}
@@ -68,7 +68,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if p == "/api/health":
             ok = shutil.which("agy") is not None
             ver = agy_version()
-            self._json({"ok": ok, "agy": AGY_BIN, "version": ver}); return
+            sver = agy_standalone_version()
+            self._json({"ok": ok, "agy": AGY_BIN, "version": ver, "standalone_version": sver}); return
         if p == "/api/quota":
             self._json({"groups": agy_quota()}); return
         if p == "/api/commands":

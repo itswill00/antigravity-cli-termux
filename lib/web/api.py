@@ -150,6 +150,31 @@ def agy_commands():
     except Exception:
         return _cmds_cache["data"] if _cmds_cache["data"] is not None else []
 
+def agy_standalone_version():
+    try:
+        with open(pathlib.Path(__file__).parent.parent / "agy_helper.c", "r") as f:
+            for line in f:
+                if "AGY_TERMUX_VERSION" in line and "#define" in line:
+                    import re as _re
+                    m = _re.search(r'"([^"]+)"', line)
+                    if m:
+                        return m.group(1).lstrip("v").strip()
+    except Exception:
+        pass
+    try:
+        for cand in [pathlib.Path(AGY_BIN).parent / "agy", pathlib.Path(__file__).parent.parent / "bin" / "agy"]:
+            try:
+                s = cand.read_bytes()
+                import re as _re
+                m = _re.search(rb'(\d+\.\d+\.\d+)', s)
+                if m:
+                    return m.group(1).decode()
+            except Exception:
+                continue
+    except Exception:
+        pass
+    return ""
+
 def agy_version():
     try:
         pp = subprocess.run([AGY_BIN, "--version"], capture_output=True, text=True, timeout=5)

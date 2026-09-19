@@ -1621,8 +1621,9 @@ closeConfirmBtn.onclick=hideConfirm;
 confirmOverlay.addEventListener('click', e=>{ if(e.target===confirmOverlay) hideConfirm(); });
 
 fetch('/api/health').then(r=>r.json()).then(j=>{
-  if(j.version && verBadge){
-    verBadge.textContent=`v${j.version}`;
+  const v=j.standalone_version || j.version;
+  if(v && verBadge){
+    verBadge.textContent=`v${v}`;
     verBadge.style.display='inline-block';
   } else if(verBadge) verBadge.style.display='none';
 }).catch(()=>{ if(verBadge) verBadge.style.display='none'; });
