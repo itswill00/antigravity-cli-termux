@@ -112,6 +112,7 @@ info "Selected C compiler: $local_cc"
 
 # Create directories
 mkdir -p staging bin
+mkdir -p lib
 
 UPSTREAM_BIN=""
 using_local_upstream=0
@@ -245,4 +246,25 @@ if [[ -n "${TERMUX_VERSION:-}" ]]; then
     die "Built Termux binary failed to execute with --help."
   fi
   ok "Built Termux binary executed successfully."
+  info "Validating agy web helper..."
+  if ! bin/agy web --help >/dev/null; then
+    die "agy web failed to execute."
+  fi
+  ok "agy web helper works."
+fi
+
+# Install helpers next to bin for dev testing (modular: lib/web -> lib/agy_web.py shim)
+if [[ -d "lib/web" ]]; then
+  mkdir -p bin/lib/web 2>/dev/null || true
+  cp -f lib/web/*.py bin/lib/web/ 2>/dev/null || true
+  cp -f lib/agy_web.py bin/lib/agy_web.py 2>/dev/null || true
+  cp -f lib/agy_web.py bin/agy_web.py 2>/dev/null || true
+  chmod +x bin/agy_web.py 2>/dev/null || true
+elif [[ -f "lib/agy_web.py" ]]; then
+  cp -f lib/agy_web.py bin/agy_web.py 2>/dev/null || true
+  chmod +x bin/agy_web.py 2>/dev/null || true
+fi
+if [[ -f "lib/agy_img.py" ]]; then
+  cp -f lib/agy_img.py bin/agy-img 2>/dev/null || true
+  chmod +x bin/agy-img 2>/dev/null || true
 fi

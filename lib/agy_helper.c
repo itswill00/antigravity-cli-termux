@@ -15,12 +15,35 @@
 #endif
 
 #ifndef AGY_TERMUX_VERSION
-#define AGY_TERMUX_VERSION "1.0.2"
+#define AGY_TERMUX_VERSION "1.2.6"
 #endif
 
-#define AGY_LATEST_RELEASE_URL "https://github.com/wallentx/antigravity-cli-termux/releases/latest"
+#define AGY_DEFAULT_REPO "itswill00/antigravity-cli-termux"
+
+static void agy_get_repo(char *buf, size_t len) {
+    const char *env = getenv("AGY_REPO");
+    if (env && env[0] != '\0') {
+        snprintf(buf, len, "%s", env);
+    } else {
+        snprintf(buf, len, "%s", AGY_DEFAULT_REPO);
+    }
+}
+
+static void agy_build_latest_url(char *buf, size_t len) {
+    char repo[256];
+    agy_get_repo(repo, sizeof(repo));
+    snprintf(buf, len, "https://github.com/%s/releases/latest", repo);
+}
+
+static void agy_build_tag_prefix(char *buf, size_t len) {
+    char repo[256];
+    agy_get_repo(repo, sizeof(repo));
+    snprintf(buf, len, "https://github.com/%s/releases/tag/", repo);
+}
+
+#define AGY_LATEST_RELEASE_URL "https://github.com/itswill00/antigravity-cli-termux/releases/latest"
 #define AGY_RELEASE_TAG_URL_PREFIX                                                                 \
-    "https://github.com/wallentx/antigravity-cli-termux/releases/tag/"
+    "https://github.com/itswill00/antigravity-cli-termux/releases/tag/"
 
 enum update_check_mode {
     UPDATE_CHECK_EXPLICIT,
@@ -287,11 +310,13 @@ static void report_update_check_error(enum update_check_mode mode, const char *m
 }
 
 static int extract_release_tag(const char *release_url, char *tag, size_t tag_size) {
-    const size_t prefix_length = strlen(AGY_RELEASE_TAG_URL_PREFIX);
+    char tag_prefix[512];
+    agy_build_tag_prefix(tag_prefix, sizeof(tag_prefix));
+    const size_t prefix_length = strlen(tag_prefix);
     const char *tag_start = NULL;
     size_t tag_length = 0;
 
-    if (strncmp(release_url, AGY_RELEASE_TAG_URL_PREFIX, prefix_length) != 0) {
+    if (strncmp(release_url, tag_prefix, prefix_length) != 0) {
         return 0;
     }
 
@@ -306,7 +331,9 @@ static int extract_release_tag(const char *release_url, char *tag, size_t tag_si
 }
 
 static int fetch_latest_release_tag(enum update_check_mode mode, char *latest_tag,
-                                    size_t latest_tag_size) {
+                                     size_t latest_tag_size) {
+    char latest_url[512];
+    agy_build_latest_url(latest_url, sizeof(latest_url));
     char command[768];
     char release_url[PATH_MAX] = {0};
     int written =
@@ -314,7 +341,7 @@ static int fetch_latest_release_tag(enum update_check_mode mode, char *latest_ta
                  "command -v curl >/dev/null 2>&1 && "
                  "curl --proto '=https' --tlsv1.2 --connect-timeout 2 --max-time 5 -fLsL "
                  "-o /dev/null -w '%%{url_effective}\\n' -H 'User-Agent: Termux-Agy' '%s'",
-                 AGY_LATEST_RELEASE_URL);
+                 latest_url);
     if (written < 0 || written >= (int)sizeof(command)) {
         report_update_check_error(mode, "could not construct the release query");
         return 0;
@@ -393,10 +420,12 @@ static int should_perform_update(int auto_update) {
 
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 static int perform_transactional_update(const char *dir, const char *latest_tag) {
+    char repo[256];
+    agy_get_repo(repo, sizeof(repo));
     char update_cmd[8192];
     int written = snprintf(
         update_cmd, sizeof(update_cmd),
-        "install_dir=\"%s\"; release_tag=\"%s\"; "
+        "install_dir=\"%s\"; release_tag=\"%s\"; repo=\"%s\"; "
         "tmp=$(mktemp -d \"${TMPDIR:-$install_dir/../tmp}/agy-update.XXXXXX\") "
         "|| exit 1; "
         "new_agy=\"$install_dir/.agy.new.$$\"; "
@@ -416,7 +445,7 @@ static int perform_transactional_update(const char *dir, const char *latest_tag)
         "if [ \"$rollback_failed\" -ne 0 ]; then exit 125; fi; exit \"$status\"; }; "
         "trap cleanup EXIT; trap 'exit 129' HUP; trap 'exit 130' INT; trap 'exit 143' TERM; "
         "curl -fsSL -o \"$tmp/antigravity-termux-standalone.tar.gz\" "
-        "\"https://github.com/wallentx/antigravity-cli-termux/releases/download/"
+        "\"https://github.com/$repo/releases/download/"
         "$release_tag/antigravity-termux-standalone.tar.gz\" && "
         "tar -xzf \"$tmp/antigravity-termux-standalone.tar.gz\" -C \"$tmp\" "
         "agy agy.va39 && "
@@ -432,7 +461,7 @@ static int perform_transactional_update(const char *dir, const char *latest_tag)
         "mv -f \"$new_payload\" \"$install_dir/agy.va39\" && "
         "mv -f \"$new_agy\" \"$install_dir/agy\" && "
         "committed=1 && { rm -f \"$old_agy\" \"$old_payload\" || :; }",
-        dir, latest_tag);
+        dir, latest_tag, repo);
     if (written < 0 || written >= (int)sizeof(update_cmd)) {
         return -1;
     }
@@ -442,12 +471,153 @@ static int perform_transactional_update(const char *dir, const char *latest_tag)
     return system(update_cmd);
 }
 
+static int is_web_command(int argc, char **argv) {
+    return argc >= 2 && strcmp(argv[1], "web") == 0;
+}
+
+static void print_web_usage(void) {
+    printf("Usage: agy web [options]\n\n"
+           "Start web UI for agy (like opencode web) — browser chat.\n\n"
+           "Options:\n"
+           "  --port <n>       Port to listen on (default 8765)\n"
+           "  --host <addr>    Host to bind (default 127.0.0.1)\n"
+           "  --open           Open in browser after start (default in Termux)\n"
+           "  --no-open        Do not auto-open browser\n"
+           "  -h, --help       Show this help\n\n"
+           "Examples:\n"
+           "  agy web                         # http://127.0.0.1:8765 (auto-opens Chrome in Termux)\n"
+           "  agy web --port 8765 --open\n"
+           "  agy web --host 0.0.0.0          # LAN (needs tunnel/auth)\n");
+}
+
+static int handle_web_command(const char *dir, int argc, char **argv) {
+    for (int i = 2; i < argc; i++) {
+        if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
+            print_web_usage();
+            return 0;
+        }
+    }
+    char web_py[PATH_MAX];
+    char alt_py[PATH_MAX];
+    char web_pkg[PATH_MAX];
+    int w = snprintf(web_py, sizeof(web_py), "%s/lib/agy_web.py", dir);
+    if (w < 0 || w >= (int)sizeof(web_py)) return 1;
+    int a = snprintf(alt_py, sizeof(alt_py), "%s/agy_web.py", dir);
+    if (a < 0 || a >= (int)sizeof(alt_py)) return 1;
+    int pkg = snprintf(web_pkg, sizeof(web_pkg), "%s/lib/web/server.py", dir);
+    if (pkg < 0 || pkg >= (int)sizeof(web_pkg)) return 1;
+    const char *web_script = NULL;
+    int use_module = 0;
+    if (access(web_pkg, R_OK) == 0) {
+        use_module = 1;
+    } else if (access(web_py, R_OK) == 0) web_script = web_py;
+    else if (access(alt_py, R_OK) == 0) web_script = alt_py;
+    if (!use_module && !web_script) {
+        // fallback to PREFIX share
+        const char *pfx = getenv("PREFIX");
+        if (pfx) {
+            char p2[PATH_MAX];
+            int wr = snprintf(p2, sizeof(p2), "%s/share/agy/agy_web.py", pfx);
+            if (wr > 0 && wr < (int)sizeof(p2) && access(p2, R_OK) == 0) {
+                web_script = p2;
+                snprintf(web_py, sizeof(web_py), "%s", p2);
+                web_script = web_py;
+            } else {
+                char p3[PATH_MAX];
+                int wr2 = snprintf(p3, sizeof(p3), "%s/share/agy/web/server.py", pfx);
+                if (wr2 > 0 && wr2 < (int)sizeof(p3) && access(p3, R_OK) == 0) {
+                    use_module = 1;
+                    snprintf(web_pkg, sizeof(web_pkg), "%s", p3);
+                }
+            }
+        }
+    }
+    if (!use_module && (!web_script || access(web_script, R_OK) != 0)) {
+        fprintf(stderr, "[agy-termux] agy_web.py not found next to agy binary.\n");
+        fprintf(stderr, "[agy-termux] Tried: %s and %s/share/agy/agy_web.py\n", web_pkg, getenv("PREFIX") ? getenv("PREFIX") : "");
+        return 1;
+    }
+    if (use_module) {
+        // Prefer modular: python3 -m web  (requires lib/web package next to agy)
+        char lib_dir[PATH_MAX];
+        int ld = snprintf(lib_dir, sizeof(lib_dir), "%s/lib", dir);
+        if (ld > 0 && ld < (int)sizeof(lib_dir)) {
+            const char *oldpy = getenv("PYTHONPATH");
+            char newpy[PATH_MAX*2];
+            if (oldpy && oldpy[0] != '\0') {
+                snprintf(newpy, sizeof(newpy), "%s:%s", lib_dir, oldpy);
+            } else {
+                snprintf(newpy, sizeof(newpy), "%s:%s/lib/..", lib_dir, dir);
+                // fallback: lib parent
+                snprintf(newpy, sizeof(newpy), "%s", lib_dir);
+                // also try parent of dir
+                char parent[PATH_MAX];
+                snprintf(parent, sizeof(parent), "%s", dir);
+                char *slash = strrchr(parent, '/');
+                if (slash) *slash = '\0';
+                snprintf(newpy, sizeof(newpy), "%s:%s", lib_dir, parent);
+            }
+            setenv("PYTHONPATH", newpy, 0);
+            // also ensure lib dir itself is in path via -m
+        }
+        int py_argc = argc + 3; // python3 -m web + args + NULL
+        char **py_argv = malloc((size_t)(py_argc + 1) * sizeof(*py_argv));
+        if (!py_argv) return 1;
+        int idx = 0;
+        py_argv[idx++] = (char *)"python3";
+        py_argv[idx++] = (char *)"-m";
+        py_argv[idx++] = (char *)"web";
+        for (int i = 2; i < argc; i++) py_argv[idx++] = argv[i];
+        py_argv[idx] = NULL;
+        // ensure PYTHONPATH includes lib parent so 'web' is found
+        char lib_parent[PATH_MAX];
+        snprintf(lib_parent, sizeof(lib_parent), "%s", dir);
+        // dir is bin dir; lib is dir/lib
+        const char *pp = getenv("PYTHONPATH");
+        char merged[PATH_MAX*2];
+        if (pp && pp[0] != '\0') {
+            snprintf(merged, sizeof(merged), "%s:%s", web_pkg, pp);
+            // web_pkg is .../lib/web/server.py, need its parent's parent
+        }
+        // simplest: set PYTHONPATH to dir/lib
+        char py_path[PATH_MAX];
+        snprintf(py_path, sizeof(py_path), "%s/lib", dir);
+        const char *existing = getenv("PYTHONPATH");
+        if (existing && existing[0] != '\0') {
+            char combined[PATH_MAX*2];
+            snprintf(combined, sizeof(combined), "%s:%s", py_path, existing);
+            setenv("PYTHONPATH", combined, 1);
+        } else {
+            setenv("PYTHONPATH", py_path, 1);
+        }
+        execvp("python3", py_argv);
+        perror("[agy-termux] exec python3 -m web failed");
+        free(py_argv);
+        return 1;
+    }
+    // Legacy single-file fallback
+    int py_argc = argc + 2; // python3 + script + args + NULL
+    char **py_argv = malloc((size_t)(py_argc + 1) * sizeof(*py_argv));
+    if (!py_argv) return 1;
+    int idx = 0;
+    py_argv[idx++] = (char *)"python3";
+    py_argv[idx++] = (char *)web_script;
+    for (int i = 2; i < argc; i++) py_argv[idx++] = argv[i];
+    py_argv[idx] = NULL;
+    execvp("python3", py_argv);
+    perror("[agy-termux] exec python3 agy_web.py failed");
+    free(py_argv);
+    return 1;
+}
+
 // Query this fork's latest release and update the installed twin binaries in place.
 static void check_and_perform_update(enum update_check_mode mode, const char *dir,
                                      int auto_update) {
     char latest_tag[64] = {0};
     if (mode == UPDATE_CHECK_EXPLICIT) {
-        printf("[agy-termux] Querying latest release from wallentx/antigravity-cli-termux...\n");
+        char repo[256];
+        agy_get_repo(repo, sizeof(repo));
+        printf("[agy-termux] Querying latest release from %s...\n", repo);
     }
     if (!fetch_latest_release_tag(mode, latest_tag, sizeof(latest_tag))) {
         return;
@@ -705,6 +875,10 @@ int main(int argc, char **argv) {
     }
     exec_path[read_len] = '\0';
     dir = dirname(exec_path);
+
+    if (is_web_command(argc, argv)) {
+        return handle_web_command(dir, argc, argv);
+    }
 
     if (is_update_command(argc, argv)) {
         if (update_command_requests_help(argc, argv)) {

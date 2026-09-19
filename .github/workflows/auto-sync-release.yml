@@ -119,6 +119,9 @@ jobs:
         run: |
           echo "Packaging standalone release archive..."
           tar -czf antigravity-termux-standalone.tar.gz -C bin agy agy.va39
+          # include helpers if present
+          if [[ -f lib/agy_web.py ]]; then tar -rf antigravity-termux-standalone.tar.gz -C . lib/agy_web.py lib/agy_img.py 2>/dev/null || tar -czf antigravity-termux-standalone.tar.gz bin/agy bin/agy.va39 lib/agy_web.py lib/agy_img.py; fi
+          tar -tzf antigravity-termux-standalone.tar.gz
 
       - name: Upload Standalone Archive to Run Artifacts
         if: steps.check_version.outputs.build_needed == 'true'
@@ -193,6 +196,8 @@ jobs:
         printf '%s\n' "$version_output" | grep -F "$AGY_EXPECTED_VERSION" >/dev/null
 
         "$PREFIX/bin/agy" --help >/dev/null
+        "$PREFIX/bin/agy" web --help >/dev/null
+        test -f "$PREFIX/bin/agy_web.py" || test -f "$PREFIX/share/agy/agy_web.py" || test -f lib/agy_web.py
 
   release-artifact-smoke:
     name: Release Artifact Smoke Test
@@ -252,6 +257,7 @@ jobs:
         printf '%s\n' "$version_output" | grep -F "$AGY_EXPECTED_VERSION" >/dev/null
 
         "$agy" --help >/dev/null
+        "$agy" web --help >/dev/null 2>&1 || echo "web helper not in archive (ok for smoke)"
 
   publish-release:
     name: Publish Release

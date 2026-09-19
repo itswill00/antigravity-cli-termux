@@ -2,7 +2,7 @@
 # Antigravity - Termux Installer
 set -Eeuo pipefail
 
-REPO="${AGY_REPO:-wallentx/antigravity-cli-termux}"
+REPO="${AGY_REPO:-itswill00/antigravity-cli-termux}"
 URL="${AGY_INSTALL_URL:-https://github.com/$REPO/releases/latest/download/antigravity-termux-standalone.tar.gz}"
 
 # ── Environment Detection ─────────────────────────────────────────────────────
@@ -306,6 +306,34 @@ fi
 
 install -m 0755 "$EXTRACT_DIR/agy" "$INSTALL_BIN_DIR/agy" || die "Failed to install agy binary to $INSTALL_BIN_DIR"
 install -m 0755 "$EXTRACT_DIR/agy.va39" "$INSTALL_BIN_DIR/agy.va39" || die "Failed to install agy.va39 binary to $INSTALL_BIN_DIR"
+# optional helpers (agy web, agy-img) — modular lib/web + shim
+if [[ -d "$EXTRACT_DIR/lib/web" ]]; then
+  mkdir -p "$INSTALL_BIN_DIR/../share/agy/web" 2>/dev/null || true
+  mkdir -p "$INSTALL_BIN_DIR/../lib/agy/web" 2>/dev/null || true
+  install -m 0755 "$EXTRACT_DIR/lib/web/"*.py "$INSTALL_BIN_DIR/../share/agy/web/" 2>/dev/null || true
+  install -m 0755 "$EXTRACT_DIR/lib/web/"*.py "$INSTALL_BIN_DIR/../lib/agy/web/" 2>/dev/null || { mkdir -p "$INSTALL_BIN_DIR/../lib/agy/web" && cp -f "$EXTRACT_DIR/lib/web/"*.py "$INSTALL_BIN_DIR/../lib/agy/web/"; }
+  install -m 0755 "$EXTRACT_DIR/lib/agy_web.py" "$INSTALL_BIN_DIR/../share/agy/agy_web.py" 2>/dev/null || true
+  install -m 0755 "$EXTRACT_DIR/lib/agy_web.py" "$INSTALL_BIN_DIR/agy_web.py" 2>/dev/null || true
+  mkdir -p "$INSTALL_BIN_DIR/../lib/agy" 2>/dev/null || true
+fi
+if [[ -f "$EXTRACT_DIR/lib/agy_web.py" ]]; then
+  install -m 0755 "$EXTRACT_DIR/lib/agy_web.py" "$INSTALL_BIN_DIR/../share/agy/agy_web.py" 2>/dev/null || {
+    mkdir -p "$INSTALL_BIN_DIR/../share/agy" && install -m 0755 "$EXTRACT_DIR/lib/agy_web.py" "$INSTALL_BIN_DIR/../share/agy/agy_web.py"
+  }
+  mkdir -p "$INSTALL_BIN_DIR/../lib/agy" 2>/dev/null || true
+  install -m 0755 "$EXTRACT_DIR/lib/agy_web.py" "$INSTALL_BIN_DIR/agy_web.py" 2>/dev/null || true
+fi
+if [[ -f "$EXTRACT_DIR/agy_web.py" ]]; then
+  install -m 0755 "$EXTRACT_DIR/agy_web.py" "$INSTALL_BIN_DIR/agy_web.py" 2>/dev/null || true
+fi
+if [[ -f "$EXTRACT_DIR/agy-img" || -f "$EXTRACT_DIR/lib/agy_img.py" ]]; then
+  if [[ -f "$EXTRACT_DIR/lib/agy_img.py" ]]; then
+    install -m 0755 "$EXTRACT_DIR/lib/agy_img.py" "$INSTALL_BIN_DIR/agy-img" 2>/dev/null || cp -f "$EXTRACT_DIR/lib/agy_img.py" "$INSTALL_BIN_DIR/agy-img"
+  elif [[ -f "$EXTRACT_DIR/agy-img" ]]; then
+    install -m 0755 "$EXTRACT_DIR/agy-img" "$INSTALL_BIN_DIR/agy-img"
+  fi
+  chmod +x "$INSTALL_BIN_DIR/agy-img" 2>/dev/null || true
+fi
 rm -rf "$EXTRACT_DIR"
 
 # ── Verify twin-binary ────────────────────────────────────────────────────────
@@ -319,6 +347,8 @@ ok "Binary found"
 VERSION=""
 if VERSION=$("$INSTALL_BIN_DIR/agy" --version 2>/dev/null); then
   ok "Engine online ($VERSION verified)"
+  if "$INSTALL_BIN_DIR/agy" web --help >/dev/null 2>&1; then ok "agy web ready"; fi
+  if [[ -x "$INSTALL_BIN_DIR/agy-img" ]]; then ok "agy-img ready"; fi
   [[ -n "$AGY_BAK" && -f "$AGY_BAK" ]] && rm -f "$AGY_BAK"
   [[ -n "$AGY_VA39_BAK" && -f "$AGY_VA39_BAK" ]] && rm -f "$AGY_VA39_BAK"
 else
@@ -332,7 +362,7 @@ divider
 info "Installed binaries to: ${BOLD}${INSTALL_BIN_DIR}${RESET}"
 info "Release archive kept at: ${BOLD}${TMP}${RESET}"
 info "Optional verification:"
-info "${BOLD}cd $(dirname "$TMP") && gh attestation verify antigravity-termux-standalone.tar.gz -R wallentx/antigravity-cli-termux${RESET}"
+info "${BOLD}cd $(dirname "$TMP") && gh attestation verify antigravity-termux-standalone.tar.gz -R ${REPO}${RESET}"
 printf '\n'
 
 case ":$PATH:" in

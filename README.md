@@ -5,8 +5,10 @@
 ## 🚀 Quick Start (Termux)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/wallentx/antigravity-cli-termux/dev/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/itswill00/antigravity-cli-termux/dev/install.sh | bash
 ```
+
+> Fork by [@itswill00](https://github.com/itswill00) — adds `agy web` (browser chat, like `opencode web`) and `agy-img` (vision). Upstream: [`wallentx/antigravity-cli-termux`](https://github.com/wallentx/antigravity-cli-termux)
 
 ![Antigravity CLI Demo](antigravity.gif)
 
@@ -99,7 +101,27 @@ Antigravity CLI brings the core capabilities of Antigravity 2.0 (multi-step reas
 
 ## Installation
 
-### Android (Termux)
+### Android (Termux) — this fork
+```bash
+curl -fsSL https://raw.githubusercontent.com/itswill00/antigravity-cli-termux/dev/install.sh | bash
+# overrides: AGY_REPO=wallentx/antigravity-cli-termux bash install.sh  # use upstream releases
+```
+
+#### `agy web` — browser chat (like `opencode web`)
+```bash
+agy web                  # http://127.0.0.1:8765
+agy web --port 8765 --open
+agy web --host 0.0.0.0  # LAN (pair with Cloudflare Tunnel / auth)
+# attach photos: click 📎 Foto, paste (Ctrl+V), or drag-drop — forwarded as @/tmp/... to agy
+```
+
+#### `agy-img` — single-shot vision
+```bash
+agy-img /sdcard/DCIM/foto.jpg "jelaskan foto ini" --model gemini-3.8-flash-medium
+# also: agy -p "@/sdcard/foto.jpg jelaskan foto ini"  (native @ support)
+```
+
+### Android (Termux) — upstream
 ```bash
 curl -fsSL https://raw.githubusercontent.com/wallentx/antigravity-cli-termux/dev/install.sh | bash
 ```
