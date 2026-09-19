@@ -63,9 +63,7 @@ header{
   top:0;left:0;right:0;
   height:var(--hdr-h);
   z-index:25;
-  background:rgba(9,9,11,0.9);
-  backdrop-filter:blur(16px);
-  -webkit-backdrop-filter:blur(16px);
+  background:var(--bg);
   border-bottom:1px solid var(--border);
   display:flex;
   align-items:center;
@@ -125,7 +123,7 @@ header{
 }
 .hdr-btn svg{width:13px;height:13px;flex:0 0 13px}
 .hdr-btn:hover{background:var(--surface);color:var(--text);border-color:var(--border-light)}
-.hdr-btn:active{transform:scale(0.97)}
+.hdr-btn:active{opacity:0.82}
 
 #chat{
   max-width:920px;
@@ -140,9 +138,8 @@ header{
   display:inline-flex;
   padding:14px 18px;
   border-radius:18px;
-  background:linear-gradient(180deg, #16161b, #0c0c0f);
+  background:var(--surface);
   border:1px solid var(--border);
-  box-shadow:0 12px 30px rgba(0,0,0,0.4);
 }
 .empty-logo-box .logo-ans pre{font:7px/7px ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
 .empty-title{font-size:19px;font-weight:700;letter-spacing:-0.4px;margin:0;color:var(--text)}
@@ -180,7 +177,7 @@ header{
   width:100%;
 }
 .chip:hover{border-color:var(--border-light);background:var(--surface-hover)}
-.chip-icon{font-size:16px;line-height:1;flex:0 0 auto;margin-top:2px}
+.chip-icon{color:var(--text-muted);flex:0 0 auto;margin-top:2px;display:grid;place-items:center}
 .chip-text{min-width:0;flex:1}
 .chip-text b{font-size:12.5px;font-weight:600;display:block;color:var(--text);line-height:1.3}
 .chip-text span{font-size:11px;color:var(--text-muted);display:block;margin-top:2px;line-height:1.3}
@@ -372,9 +369,7 @@ header{
   position:fixed;
   bottom:0;left:0;right:0;
   z-index:20;
-  background:rgba(9,9,11,0.92);
-  backdrop-filter:blur(16px);
-  -webkit-backdrop-filter:blur(16px);
+  background:var(--bg);
   border-top:1px solid var(--border);
   padding-bottom:calc(env(safe-area-inset-bottom) + var(--kb, 0px));
   transition:padding-bottom 0.12s ease;
@@ -532,8 +527,6 @@ header{
   inset:0;
   z-index:50;
   background:rgba(0,0,0,0.7);
-  backdrop-filter:blur(10px);
-  -webkit-backdrop-filter:blur(10px);
   display:none;
   align-items:center;
   justify-content:center;
@@ -857,7 +850,6 @@ header{
   position:fixed;
   inset:0;
   background:rgba(0,0,0,0.6);
-  backdrop-filter:blur(4px);
   display:none;
   place-items:center;
   z-index:60;
@@ -1274,19 +1266,19 @@ function render(){
 
         <div class="suggestions-grid">
           <button class="chip" data-prompt="Explain this codebase architecture in 5 bullets">
-            <div class="chip-icon">📂</div>
+            <div class="chip-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>
             <div class="chip-text"><b>Explain codebase</b><span>Architecture & structure</span></div>
           </button>
           <button class="chip" data-prompt="Review recent changes for bugs and over-engineering">
-            <div class="chip-icon">⚡</div>
+            <div class="chip-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
             <div class="chip-text"><b>Review changes</b><span>Bugs & ponytail check</span></div>
           </button>
           <button class="chip" data-prompt="Write a minimal, dependency-free script to solve this">
-            <div class="chip-icon">🛠️</div>
+            <div class="chip-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div>
             <div class="chip-text"><b>Minimal script</b><span>Stdlib-only, clean path</span></div>
           </button>
           <button class="chip" data-prompt="Help me debug this error, suggest the smallest fix">
-            <div class="chip-icon">🔍</div>
+            <div class="chip-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
             <div class="chip-text"><b>Diagnose error</b><span>Smallest root-cause fix</span></div>
           </button>
         </div>
