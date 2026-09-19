@@ -798,6 +798,179 @@ header{
 }
 .modal-empty{padding:30px;text-align:center;color:var(--text-muted);font-size:12.5px}
 
+.modal-card-sm{max-width:380px}
+.modal-foot{
+  padding:10px 14px;
+  border-top:1px solid var(--border);
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+  background:var(--surface);
+}
+.modal-btn-subtle{
+  background:transparent;
+  border:1px solid var(--border);
+  color:var(--text-muted);
+  border-radius:var(--radius-sm);
+  padding:6px 12px;
+  font-size:12px;
+  font-weight:550;
+  cursor:pointer;
+  transition:all 0.14s ease;
+}
+.modal-btn-subtle:hover{background:var(--surface-hover);color:var(--text)}
+.modal-btn-subtle:active{transform:scale(0.96)}
+.modal-btn-danger{
+  background:var(--accent);
+  border:1px solid var(--accent);
+  color:#09090b;
+  border-radius:var(--radius-sm);
+  padding:6px 14px;
+  font-size:12px;
+  font-weight:650;
+  cursor:pointer;
+  transition:all 0.14s ease;
+}
+.modal-btn-danger:hover{opacity:0.92}
+.modal-btn-danger:active{transform:scale(0.96)}
+
+.model-trigger-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius-md);
+  padding:4px 10px 4px 9px;
+  height:30px;
+  cursor:pointer;
+  transition:all 0.14s ease;
+  max-width:100%;
+}
+.model-trigger-btn:hover{
+  background:var(--surface-hover);
+  border-color:var(--border-light);
+}
+.model-trigger-btn:active{
+  transform:scale(0.97);
+}
+.model-dot{
+  width:6px;
+  height:6px;
+  border-radius:999px;
+  background:var(--accent);
+  flex:0 0 6px;
+  box-shadow:0 0 6px rgba(56,189,248,0.5);
+}
+.model-name{
+  font-size:12px;
+  font-weight:600;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--text);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  max-width:260px;
+}
+.model-trigger-btn .chevron{
+  width:11px;
+  height:11px;
+  color:var(--text-muted);
+  flex:0 0 11px;
+}
+
+.model-item{
+  background:var(--surface-card);
+  border:1px solid var(--border);
+  border-radius:var(--radius-md);
+  padding:8px 10px;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  text-align:left;
+  transition:background 0.14s ease, border-color 0.14s ease, transform 0.14s cubic-bezier(0.16,1,0.3,1);
+  width:100%;
+}
+.model-item:hover{
+  background:var(--surface-hover);
+  border-color:var(--border-light);
+  transform:translateX(2px);
+}
+.model-item:active{transform:scale(0.98)}
+.model-item.active{
+  border-color:var(--accent);
+  background:rgba(56,189,248,0.06);
+  box-shadow:inset 2px 0 0 0 var(--accent);
+}
+.model-item.nav-focused{
+  border-color:var(--border-focus);
+  background:var(--surface-active);
+}
+.model-item-dot{
+  width:6px;
+  height:6px;
+  border-radius:999px;
+  background:var(--border-light);
+  flex:0 0 6px;
+  transition:all 0.15s ease;
+}
+.model-item.active .model-item-dot{
+  background:var(--accent);
+  box-shadow:0 0 6px rgba(56,189,248,0.7);
+}
+.model-item-main{flex:1;min-width:0}
+.model-item-title-row{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  min-width:0;
+}
+.model-item-label{
+  font-size:12.5px;
+  font-weight:600;
+  color:var(--text);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  flex:1 1 auto;
+  line-height:1.3;
+}
+.model-badge{
+  font-size:9.5px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  border:1px solid var(--border);
+  padding:1px 5px;
+  border-radius:4px;
+  background:var(--surface);
+  color:var(--text-muted);
+  white-space:nowrap;
+  flex:0 0 auto;
+}
+.model-badge.gemini{color:#38bdf8;border-color:rgba(56,189,248,0.3)}
+.model-badge.claude{color:#f59e0b;border-color:rgba(245,158,11,0.3)}
+.model-badge.gpt{color:#10b981;border-color:rgba(16,185,129,0.3)}
+.model-item-id{
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:10.5px;
+  color:var(--text-muted);
+  margin-top:2px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.model-check{
+  width:14px;
+  height:14px;
+  color:var(--accent);
+  flex:0 0 14px;
+  opacity:0;
+  transition:opacity 0.15s ease;
+}
+.model-item.active .model-check{
+  opacity:1;
+}
+
 .drop-overlay{
   position:fixed;
   inset:0;
@@ -826,8 +999,8 @@ header{
   .brand b{font-size:12px;max-width:88px}
   .logo-ans pre{font:3.2px/3.2px ui-monospace,SFMono-Regular,Menlo,monospace}
   .ver-pill{display:none}
-  .pill-group{padding:2px 4px}
-  .pill-select-wrap select{max-width:185px;font-size:11px;padding:4px 18px 4px 6px}
+  .model-name{max-width:180px;font-size:11px}
+  .model-trigger-btn{height:28px;padding:3px 8px}
   .hdr-btn{min-height:32px;min-width:32px;padding:0;justify-content:center}
   .hdr-btn .btn-text{display:none}
   .empty-logo-box{padding:10px 14px}
@@ -865,7 +1038,7 @@ header{
 }
 @media(max-width:380px){
   .brand b{display:none}
-  .pill-select-wrap select{max-width:145px}
+  .model-name{max-width:140px}
   .quota-pill{max-width:130px;font-size:9.5px;padding:0 6px}
 }
 </style>
@@ -890,12 +1063,11 @@ header{
     </div>
 
     <div class="hdr-center">
-      <div class="pill-group">
-        <div class="pill-select-wrap" title="Active Model (Ctrl+K)">
-          <select id="hdrModel" aria-label="Model"></select>
-          <svg class="chevron" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/></svg>
-        </div>
-      </div>
+      <button id="hdrModelBtn" class="model-trigger-btn" type="button" title="Select Model (Ctrl+K)" aria-label="Select Model">
+        <span class="model-dot"></span>
+        <span id="hdrModelLabel" class="model-name">Loading model…</span>
+        <svg class="chevron" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/></svg>
+      </button>
     </div>
 
     <div class="hdr-right">
@@ -983,15 +1155,68 @@ header{
   </div>
 </div>
 
+<div id="modelOverlay" class="modal-overlay" aria-hidden="true">
+  <div class="modal-card">
+    <div class="sheet-handle"></div>
+    <div class="modal-head">
+      <div class="modal-head-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;color:var(--accent)"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+        <h2>Select Model</h2>
+        <span class="session-total-pill" id="modelTotalCount">0</span>
+      </div>
+      <div class="modal-actions">
+        <button id="closeModelBtn" class="modal-close-btn" type="button" title="Close (Esc)" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="modal-search-wrap">
+      <div class="modal-search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="modelSearch" class="modal-search-input" placeholder="Search models by name or id…" aria-label="Search models">
+        <span class="session-count-badge" id="modelCount">0</span>
+      </div>
+    </div>
+    <div id="modelList" class="modal-body"></div>
+  </div>
+</div>
+
+<div id="confirmOverlay" class="modal-overlay" aria-hidden="true">
+  <div class="modal-card modal-card-sm">
+    <div class="modal-head">
+      <div class="modal-head-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;color:var(--warning)"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <h2 id="confirmTitle">New Chat</h2>
+      </div>
+      <div class="modal-actions">
+        <button id="closeConfirmBtn" class="modal-close-btn" type="button" title="Cancel (Esc)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="modal-body" style="padding:16px 14px">
+      <p id="confirmMsg" style="margin:0;font-size:13px;color:var(--text-muted);line-height:1.5">Start a new chat session? Your current conversation is saved in Sessions.</p>
+    </div>
+    <div class="modal-foot">
+      <button id="cancelConfirmBtn" class="modal-btn-subtle" type="button">Cancel</button>
+      <button id="okConfirmBtn" class="modal-btn-danger" type="button">Start New</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const chatEl=document.getElementById('chat'), promptEl=document.getElementById('prompt');
 const fileEl=document.getElementById('file'), attachBtn=document.getElementById('attachBtn'), previewEl=document.getElementById('preview');
 const counterEl=document.getElementById('counter'), dropOverlay=document.getElementById('dropOverlay');
 const quotaBadge=document.getElementById('quotaBadge'), quotaText=document.getElementById('quotaText');
 const slashMenu=document.getElementById('slashMenu'), verBadge=document.getElementById('verBadge'), sendBtn=document.getElementById('send'), sendLabel=document.getElementById('sendLabel');
-const hdrModelEl=document.getElementById('hdrModel');
+const hdrModelBtn=document.getElementById('hdrModelBtn'), hdrModelLabel=document.getElementById('hdrModelLabel');
 const hdrSessionsBtn=document.getElementById('hdrSessionsBtn'), clearBtn=document.getElementById('clearBtn');
 const sessionOverlay=document.getElementById('sessionOverlay'), sessionList=document.getElementById('sessionList'), sessionSearch=document.getElementById('sessionSearch');
+const modelOverlay=document.getElementById('modelOverlay'), modelList=document.getElementById('modelList'), modelSearch=document.getElementById('modelSearch');
+const confirmOverlay=document.getElementById('confirmOverlay'), confirmTitle=document.getElementById('confirmTitle'), confirmMsg=document.getElementById('confirmMsg'), okConfirmBtn=document.getElementById('okConfirmBtn'), cancelConfirmBtn=document.getElementById('cancelConfirmBtn'), closeConfirmBtn=document.getElementById('closeConfirmBtn');
+
+let currentModel='gemini-3.8-flash-medium';
 
 let pendingImage=null;
 let history=[];
@@ -1258,27 +1483,208 @@ function render(){
   syncLayout();
 }
 
+function setModel(mid){
+  if(!mid) return;
+  currentModel=mid;
+  localStorage.setItem('agy_web_model', mid);
+  const found=modelCache.find(m=>m.id===mid);
+  if(hdrModelLabel){
+    hdrModelLabel.textContent=found ? (found.label || found.id) : mid;
+  }
+  if(hdrModelBtn){
+    hdrModelBtn.title=`Active Model: ${mid} (Ctrl+K)`;
+  }
+  renderQuota(quotaCache||[]);
+  if(modelOverlay.classList.contains('on')){
+    renderModelList(getFilteredModels());
+  }
+}
+
+function renderModelList(models){
+  modelList.innerHTML='';
+  if(!models.length){
+    modelList.innerHTML='<div class="modal-empty">No models found.</div>';
+    return;
+  }
+  models.forEach(m=>{
+    const isActive=m.id===currentModel;
+    const card=document.createElement('button');
+    card.className='model-item'+(isActive?' active':'');
+    card.type='button';
+    card.dataset.id=m.id;
+
+    const mid=m.id.toLowerCase();
+    let family='gemini';
+    let familyLabel='Gemini';
+    if(mid.startsWith('claude')){ family='claude'; familyLabel='Claude'; }
+    else if(mid.startsWith('gpt')){ family='gpt'; familyLabel='GPT'; }
+
+    let effortTag='';
+    if(mid.includes('-high')) effortTag='High';
+    else if(mid.includes('-medium')) effortTag='Med';
+    else if(mid.includes('-low')) effortTag='Low';
+    else if(mid.includes('thinking')) effortTag='Thinking';
+
+    card.innerHTML=`
+      <div class="model-item-dot"></div>
+      <div class="model-item-main">
+        <div class="model-item-title-row">
+          <span class="model-item-label">${esc(m.label || m.id)}</span>
+          <span class="model-badge ${family}">${esc(familyLabel)}</span>
+          ${effortTag ? `<span class="model-badge">${esc(effortTag)}</span>` : ''}
+        </div>
+        <div class="model-item-id">${esc(m.id)}</div>
+      </div>
+      <svg class="model-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+    `;
+
+    card.onclick=()=>{
+      setModel(m.id);
+      hideModels();
+    };
+    modelList.appendChild(card);
+  });
+}
+
+function getFilteredModels(){
+  const q=modelSearch.value.trim().toLowerCase();
+  if(!q) return modelCache;
+  return modelCache.filter(m=>
+    m.id.toLowerCase().includes(q) ||
+    (m.label||'').toLowerCase().includes(q)
+  );
+}
+
 async function loadModels(){
   try{
     const r=await fetch('/api/models');
     const j=await r.json();
     modelCache=j.models||[];
-    hdrModelEl.innerHTML='';
-    modelCache.forEach(m=>{
-      const o=document.createElement('option');
-      o.value=m.id;
-      o.textContent=m.label||m.id;
-      hdrModelEl.appendChild(o);
-    });
+    const totalEl=document.getElementById('modelTotalCount');
+    if(totalEl) totalEl.textContent=modelCache.length;
+    const countEl=document.getElementById('modelCount');
+    if(countEl) countEl.textContent=modelCache.length;
+
     const saved=localStorage.getItem('agy_web_model');
-    if(saved && [...hdrModelEl.options].some(o=>o.value===saved)) hdrModelEl.value=saved;
+    if(saved && modelCache.some(m=>m.id===saved)){
+      currentModel=saved;
+    } else if(modelCache.length){
+      currentModel=modelCache[0].id;
+    }
+    setModel(currentModel);
+    renderModelList(modelCache);
   }catch(e){}
 }
-hdrModelEl.addEventListener('change', ()=>{
-  localStorage.setItem('agy_web_model', hdrModelEl.value);
-  renderQuota(quotaCache||[]);
-});
 loadModels();
+
+function showModels(){
+  modelOverlay.classList.add('on');
+  modelOverlay.setAttribute('aria-hidden','false');
+  modelSearch.value='';
+  const countEl=document.getElementById('modelCount');
+  if(countEl) countEl.textContent=modelCache.length;
+  renderModelList(modelCache);
+  setTimeout(()=>modelSearch.focus(), 60);
+}
+function hideModels(){
+  modelOverlay.classList.remove('on');
+  modelOverlay.setAttribute('aria-hidden','true');
+}
+
+modelSearch.addEventListener('input', ()=>{
+  const filtered=getFilteredModels();
+  const countEl=document.getElementById('modelCount');
+  if(countEl) countEl.textContent=`${filtered.length}/${modelCache.length}`;
+  renderModelList(filtered);
+});
+
+modelSearch.addEventListener('keydown', e=>{
+  const items=Array.from(modelList.querySelectorAll('.model-item'));
+  if(!items.length) return;
+  const currentIdx=items.findIndex(it=>it.classList.contains('nav-focused'));
+
+  if(e.key==='ArrowDown'){
+    e.preventDefault();
+    const nextIdx=currentIdx < items.length - 1 ? currentIdx + 1 : 0;
+    items.forEach(it=>it.classList.remove('nav-focused'));
+    items[nextIdx].classList.add('nav-focused');
+    items[nextIdx].scrollIntoView({block:'nearest'});
+  } else if(e.key==='ArrowUp'){
+    e.preventDefault();
+    const prevIdx=currentIdx > 0 ? currentIdx - 1 : items.length - 1;
+    items.forEach(it=>it.classList.remove('nav-focused'));
+    items[prevIdx].classList.add('nav-focused');
+    items[prevIdx].scrollIntoView({block:'nearest'});
+  } else if(e.key==='Enter'){
+    e.preventDefault();
+    if(currentIdx >= 0){
+      items[currentIdx].click();
+    } else if(items[0]){
+      items[0].click();
+    }
+  }
+});
+
+hdrModelBtn.addEventListener('click', showModels);
+document.getElementById('closeModelBtn').addEventListener('click', hideModels);
+modelOverlay.addEventListener('click', e=>{ if(e.target===modelOverlay) hideModels(); });
+
+(function initModelSheetGesture(){
+  const card=modelOverlay.querySelector('.modal-card');
+  let startY=0, currentY=0, isDragging=false;
+  if(!card) return;
+
+  card.addEventListener('touchstart', e=>{
+    if(modelList.scrollTop>0 && !e.target.closest('.sheet-handle') && !e.target.closest('.modal-head')) return;
+    startY=e.touches[0].clientY;
+    currentY=startY;
+    isDragging=true;
+  }, {passive:true});
+
+  card.addEventListener('touchmove', e=>{
+    if(!isDragging) return;
+    currentY=e.touches[0].clientY;
+    const dy=currentY - startY;
+    if(dy>0){
+      card.style.transform=`translateY(${dy}px)`;
+      card.style.transition='none';
+    }
+  }, {passive:true});
+
+  card.addEventListener('touchend', ()=>{
+    if(!isDragging) return;
+    isDragging=false;
+    const dy=currentY - startY;
+    card.style.transition='';
+    card.style.transform='';
+    if(dy>90){
+      hideModels();
+    }
+  });
+})();
+
+let confirmCallback=null;
+function showConfirm(title, msg, onOk){
+  confirmTitle.textContent=title || 'Confirm';
+  confirmMsg.textContent=msg || 'Are you sure?';
+  confirmCallback=onOk;
+  confirmOverlay.classList.add('on');
+  confirmOverlay.setAttribute('aria-hidden','false');
+  okConfirmBtn.focus();
+}
+function hideConfirm(){
+  confirmOverlay.classList.remove('on');
+  confirmOverlay.setAttribute('aria-hidden','true');
+  confirmCallback=null;
+}
+okConfirmBtn.onclick=()=>{
+  const cb=confirmCallback;
+  hideConfirm();
+  if(cb) cb();
+};
+cancelConfirmBtn.onclick=hideConfirm;
+closeConfirmBtn.onclick=hideConfirm;
+confirmOverlay.addEventListener('click', e=>{ if(e.target===confirmOverlay) hideConfirm(); });
 
 fetch('/api/health').then(r=>r.json()).then(j=>{
   if(j.version && verBadge){
@@ -1298,7 +1704,7 @@ function renderQuota(groups){
     quotaText.textContent='quota —';
     return;
   }
-  const want=modelGroup(hdrModelEl.value);
+  const want=modelGroup(currentModel);
   let g0=groups.find(g=>(g.key||'').toLowerCase()===want) || groups.find(g=>g.name.toLowerCase().includes(want==='gemini'?'gemini':'claude')) || groups[0];
   if(!g0){ quotaText.textContent='quota —'; return; }
   const buckets=g0.buckets||[];
@@ -1567,7 +1973,10 @@ hdrSessionsBtn.addEventListener('click', showSessions);
 document.getElementById('newSessionBtn').addEventListener('click', newSession);
 document.getElementById('closeSessionsBtn').addEventListener('click', hideSessions);
 clearBtn.addEventListener('click', ()=>{
-  if(confirm('Start a new chat?')){ newSession(); }
+  if(!history.length){ newSession(); return; }
+  showConfirm('New Chat', 'Start a new chat session? Your current conversation is saved in Sessions.', ()=>{
+    newSession();
+  });
 });
 sessionOverlay.addEventListener('click', e=>{ if(e.target===sessionOverlay) hideSessions(); });
 
@@ -1725,21 +2134,13 @@ async function send(){
     slashMenu.classList.remove('on');
     slashActive=-1;
     if(parts.length===1){
-      hdrModelEl.focus();
-      try{ hdrModelEl.showPicker && hdrModelEl.showPicker(); }catch(_){}
+      showModels();
       return;
     }
     let want=parts[1].toLowerCase();
     let found=modelCache.find(m=>m.id.toLowerCase()===want) || modelCache.find(m=>m.id.toLowerCase().includes(want)) || modelCache.find(m=>(m.label||'').toLowerCase().includes(want));
     let mid=found ? found.id : parts[1];
-    if(![...hdrModelEl.options].some(o=>o.value===mid)){
-      const o=document.createElement('option'); o.value=mid; o.textContent=mid;
-      hdrModelEl.appendChild(o);
-      modelCache.push({id:mid, label:mid});
-    }
-    hdrModelEl.value=mid;
-    localStorage.setItem('agy_web_model', mid);
-    renderQuota(quotaCache||[]);
+    setModel(mid);
     const effPick=parts[2]||'';
     if(effPick) localStorage.setItem('agy_web_effort', effPick);
     history.push({role:'user', text});
@@ -1754,7 +2155,10 @@ async function send(){
     slashMenu.classList.remove('on');
     promptEl.value='';
     autoSize();
-    if(confirm('Start a new chat?')){ newSession(); }
+    if(!history.length){ newSession(); return; }
+    showConfirm('New Chat', 'Start a new chat session? Your current conversation is saved in Sessions.', ()=>{
+      newSession();
+    });
     return;
   }
 
@@ -1770,13 +2174,13 @@ async function send(){
   setPreview();
 
   const eff=localStorage.getItem('agy_web_effort')||'';
-  const snapshotModel=hdrModelEl.value + (eff ? ` · ${eff}` : '');
+  const snapshotModel=currentModel + (eff ? ` · ${eff}` : '');
   const th={role:'assistant', text:'', thinking:true, model:snapshotModel};
   history.push(th);
   render();
 
   setStreaming(true);
-  const body={prompt:text, model:hdrModelEl.value, effort:eff, conversation_id:currentConversation||''};
+  const body={prompt:text, model:currentModel, effort:eff, conversation_id:currentConversation||''};
   if(imgToSend) body.image={data:imgToSend.base64, mime:imgToSend.mime, name:imgToSend.name};
 
   const t0=performance.now();
@@ -1920,8 +2324,7 @@ promptEl.addEventListener('keydown', e=>{
 document.addEventListener('keydown', e=>{
   if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='k'){
     e.preventDefault();
-    hdrModelEl.focus();
-    try{ hdrModelEl.showPicker && hdrModelEl.showPicker(); }catch(_){}
+    showModels();
     return;
   }
   if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='l'){
@@ -1935,6 +2338,8 @@ document.addEventListener('keydown', e=>{
     return;
   }
   if(e.key==='Escape'){
+    if(confirmOverlay.classList.contains('on')) hideConfirm();
+    if(modelOverlay.classList.contains('on')) hideModels();
     if(sessionOverlay.classList.contains('on')) hideSessions();
     slashMenu.classList.remove('on');
     if(sendBtn.dataset.mode==='stop' && currentAbort) currentAbort.abort();
