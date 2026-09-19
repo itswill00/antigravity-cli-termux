@@ -4,6 +4,12 @@
 
 The terminal-first surface to interact with Antigravity agents. Stay in your flow without context switching.
 
+## 1.2.9
+
+- Fixed `agy web` clean install (`lib/agy_web.py:1` self-healing shim + `install.sh:337` heal): release tar `v1.2.8` shipped old shim (`from web.server import main` without `PYTHONPATH`) and missing `bin/lib/web` fallback, causing `ModuleNotFoundError: No module named 'web'` on fresh installs.
+- Fixed quota badge stuck at `quota —` on clean installs from stale `tar v1.2.8` (cached `api.py:229`/`server.py:313`/`ui.py` pre-polish): `ag/[...]` ensures fresh `lib/web` on install and `agy_helper.c:500` modular `web` fallback now reliable.
+- Chore: bump bootstrapper to `1.2.9`, sync `AGENT.md` and installer heal.
+
 ## 1.2.8
 
 - Refactored `agy web` UI: completely stripped AI slop aesthetics, removed glowing LED dots, pulsing halo shadows, and rainbow badges across the interface.

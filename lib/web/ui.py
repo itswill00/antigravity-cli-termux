@@ -876,12 +876,12 @@ header{
 
 @media(max-width:640px){
   :root{--hdr-h:46px}
-  .hdr-inner{padding:0 8px;gap:5px;flex-wrap:nowrap;overflow:hidden}
+  .hdr-inner{padding:0 8px;gap:6px;flex-wrap:nowrap;overflow:hidden}
   .brand{gap:6px}
   .brand b{font-size:12px;max-width:88px}
   .logo-ans pre{font:3.2px/3.2px ui-monospace,SFMono-Regular,Menlo,monospace}
-  .ver-pill{display:none}
-  .model-name{max-width:180px;font-size:11px}
+  .ver-pill{font-size:8.5px;padding:1px 5px;display:inline-flex;align-items:center}
+  .model-name{max-width:130px;font-size:11px}
   .model-trigger-btn{height:28px;padding:3px 8px}
   .hdr-btn{min-height:32px;min-width:32px;padding:0;justify-content:center}
   .hdr-btn .btn-text{display:none}
@@ -920,7 +920,10 @@ header{
 }
 @media(max-width:380px){
   .brand b{display:none}
-  .model-name{max-width:140px}
+  .hdr-center{flex:0 1 auto;min-width:0}
+  .model-name{max-width:110px}
+  .model-trigger-btn{padding:2px 6px}
+  .ver-pill{font-size:8px;padding:1px 4px}
   .quota-pill{max-width:130px;font-size:9.5px;padding:0 6px}
 }
 </style>
@@ -939,7 +942,6 @@ header{
       <span style="color:rgb(44,138,237);background:rgb(40,135,214)">▄</span><span style="color:rgb(46,135,247);background:rgb(46,138,240)">▄</span><span style="background:rgb(42,118,218)">▄</span>      <span style="background:rgb(53,122,227)">▄</span><span style="color:rgb(59,136,253);background:rgb(67,138,252)">▄</span><span style="color:rgb(66,138,252);background:rgb(71,129,232)">▄</span>
      <span style="color:rgb(45,136,243);background:rgb(35,113,192)">▄</span><span style="color:rgb(44,127,236);background:rgb(46,136,244)">▄</span><span style="background:rgb(34,97,181)">▄</span>        <span style="background:rgb(41,102,192)">▄</span><span style="color:rgb(51,129,243);background:rgb(59,136,253)">▄</span><span style="color:rgb(57,135,253);background:rgb(49,107,198)">▄</span>
    <span style="color:rgb(41,120,218)">▄</span><span style="color:rgb(44,125,231);background:rgb(43,130,232)">▄</span><span style="background:rgb(46,132,244)">▄</span>            <span style="background:rgb(51,132,251)">▄</span><span style="color:rgb(47,125,238);background:rgb(51,126,238)">▄</span><span style="color:rgb(41,109,207)">▄</span></pre></div>
-        <b>Antigravity Web</b>
         <span class="ver-pill" id="verBadge">—</span>
       </a>
     </div>
